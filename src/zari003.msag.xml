@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_MSAG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <T100A>
+    <ARBGB>ZARI003</ARBGB>
+    <MASTERLANG>E</MASTERLANG>
+    <STEXT>Payment Result to Salesforce</STEXT>
+   </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>Payment &amp;1 has no item to report</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Payment result sent to Salesforce: &amp;1 item(s)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Salesforce rejected the update: &amp;1 &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Salesforce not reachable (HTTP &amp;1)</TEXT>
+    </T100>
+   </T100>
+  </asx:values>
+ </asx:abap>
+</abapGit>
