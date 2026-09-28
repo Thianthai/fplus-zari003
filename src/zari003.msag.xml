@@ -32,6 +32,36 @@
      <MSGNR>004</MSGNR>
      <TEXT>Salesforce not reachable (HTTP &amp;1)</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>005</MSGNR>
+     <TEXT>Payment document &amp;1 not found in company code &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>006</MSGNR>
+     <TEXT>Payment &amp;1 already cleared by document &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>007</MSGNR>
+     <TEXT>Payment &amp;1 cleared by document &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>008</MSGNR>
+     <TEXT>Payment &amp;1 not cleared: &amp;2&amp;3</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>009</MSGNR>
+     <TEXT>Clearing result rejected: &amp;1&amp;2&amp;3</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
