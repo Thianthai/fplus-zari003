@@ -22,15 +22,18 @@ Salesforce ──▶ SBPA ──▶ ZARI002 ──insert──▶ ZTAR_I002_PYMT
                                      Salesforce  BST_SAP_Status__c = Completed
 ```
 
-ZARI003 ถูกเรียกจาก `ZCL_ZARE002_CLEARING_RESULT` (handler ของ API #3) ทันทีหลังบันทึกเลข clearing สำเร็จ
+API #3 เป็นของ ZARI003 (ย้ายมาจาก ZARE002 2026-09-28): `ZARI003_CLEARING` -> `ZCL_ZARI003_CLEARING_HTTP` -> `ZCL_ZARI003_CLEARING_RESULT`
+บันทึกเลข clearing สำเร็จแล้วเรียก `ZCL_ZARI003_SFDC_RESULT` ต่อทันที
+สัญญา request/response ของ API #3 อยู่ที่ `fplus-zare002/docs/10_api_contract.md` (ที่เดียวกับ API #1 / #4 ที่ BOT ใช้)
 
 ## 2. ขอบเขต
 
 | อยู่ในขอบเขต | ไม่อยู่ในขอบเขต |
 |---|---|
-| อ่าน item ทุกบรรทัดของ payment ที่ปิดงานแล้ว | หน้าจอ (ZARE002) |
+| API #3 รับผล clearing จาก BOT -> stamp `clearing_*` + status C | หน้าจอ (ZARE002) |
+| อ่าน item ทุกบรรทัดของ payment ที่ปิดงานแล้ว | |
 | ประกอบ record ส่ง Composite API เป็น `Completed` | post FI (ZARE002) |
-| แบ่งยิงทีละ 25 record ตาม limit ของ Composite API | clearing (BOT + ZARE002) |
+| แบ่งยิงทีละ 25 record ตาม limit ของ Composite API | ตัวการ clear ในระบบ (BOT) · คิวของ BOT API #4 (ZARE002) |
 | เขียน `salesforce_status` / `salesforce_message` ลง header | การส่งผล Reject (ZARE002) |
 | คืนผลให้ผู้เรียกไปแสดงต่อ | การรับข้อมูลเข้า (ZARI002) |
 

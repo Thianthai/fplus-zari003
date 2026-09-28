@@ -11,7 +11,7 @@
 | Repo sync | abapGit (local ⇄ GitHub ⇄ S/4HANA Cloud) |
 | Package | **`ZARI003`** — package เดียว ไม่มี sub-package |
 | Data source | `ZTAR_I002_PYMT` / `ZTAR_I002_ITEM` (**เป็นของ package `ZARI002`**) |
-| RICEFW ที่เกี่ยวข้อง | **ZARI002** (รับข้อมูลเข้า) · **ZARE002** (หน้าจอ + post FI + clearing) |
+| RICEFW ที่เกี่ยวข้อง | **ZARI002** (รับข้อมูลเข้า) · **ZARE002** (หน้าจอ + post FI + คิวของ BOT) |
 
 ## Scope
 
@@ -34,15 +34,18 @@ Salesforce ──▶ SBPA ──▶ ZARI002 ──▶ ZTAR_I002_PYMT  status = N
                                      (งานของ repo นี้)     Completed
 ```
 
-**ขอบเขตของ ZARI003** คือขั้นสุดท้ายขั้นเดียว: อ่าน item ของ payment ที่ปิดงานแล้ว
-ประกอบ record ส่งเข้า Composite API แล้วบันทึกผลการส่งลง `salesforce_status` / `salesforce_message`
+**ขอบเขตของ ZARI003** คือขั้นสุดท้าย: รับผล clearing จาก BOT ผ่าน **API #3** (`ZARI003_CLEARING`) บันทึกเลข clearing
+แล้วอ่าน item ประกอบ record ส่งเข้า Composite API และบันทึกผลการส่งลง `salesforce_status` / `salesforce_message`
 
-**ไม่อยู่ในขอบเขต**: หน้าจอ · การ post FI · การ clearing · การส่งผล Reject (เป็นของ ZARE002)
+**ไม่อยู่ในขอบเขต**: หน้าจอ · การ post FI · คิวงานของ BOT (API #4) · การส่งผล Reject (เป็นของ ZARE002) · ตัวการ clear ในระบบ (BOT ทำเอง)
 
 ## Object หลัก
 
 | Object | ชนิด | หน้าที่ |
 |---|---|---|
+| `ZARI003_CLEARING` | HTTP Service | API #3 ที่ BOT ยิงผล clearing เข้ามา · scenario `ZCS_CLEARING_RESULT` / arrangement `ZCA_CLEARING_RESULT` |
+| `ZCL_ZARI003_CLEARING_HTTP` | Class | handler ของ API #3: อ่าน JSON ตรวจ field ตอบ response |
+| `ZCL_ZARI003_CLEARING_RESULT` | Class | หาใบ -> stamp เลข clearing + status C หรือเก็บ `clearing_message` -> เรียก `ZCL_ZARI003_SFDC_RESULT` |
 | `ZCL_ZARI003_SFDC_RESULT` | Class | อ่าน item -> ประกอบ record `Completed` -> แบ่งชุด 25 -> ยิง Composite API -> เขียนผลลง header |
 | `ZARI003` | Message class | ข้อความของ flow นี้ |
 

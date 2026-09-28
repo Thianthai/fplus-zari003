@@ -39,8 +39,8 @@
 | ใคร | ทำอะไรกับ table |
 |---|---|
 | **ZARI002** | insert อย่างเดียว เขียน `status = 'N'` |
-| **ZARE002** | อ่านทุก row · update `reject_reason` ที่ item · header: `status` `payment_accounting_document` `payment_fiscal_year` `clearing_accounting_document` `clearing_fiscal_year` `submit_message` `clearing_message` · และ `salesforce_status` / `salesforce_message` เฉพาะ **path Reject** |
-| **ZARI003** (งานนี้) | อ่าน item · **เขียน `salesforce_status` / `salesforce_message` เฉพาะ path Completed** |
+| **ZARE002** | อ่านทุก row · update `reject_reason` ที่ item · header: `status = 'R'` + `salesforce_status` / `salesforce_message` (**path Reject**) · `payment_accounting_document` `payment_fiscal_year` `submit_message` (**Submit**) |
+| **ZARI003** (งานนี้) | API #3: `clearing_accounting_document` `clearing_fiscal_year` `clearing_message` `status = 'C'` · แล้ว **เขียน `salesforce_status` / `salesforce_message` เฉพาะ path Completed** (ย้าย API #3 มาจาก ZARE002 2026-09-28) |
 
 ## ของกลางที่ใช้
 
