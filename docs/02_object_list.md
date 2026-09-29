@@ -14,6 +14,12 @@
 | `ZARI003_CLEARING` | HTTP Service — `/sap/bc/http/sap/ZARI003_CLEARING` · inbound `ZARI003_CLEARING_HTTP` | `src/zari003_clearing.http.xml` | ✅ `97054a4` · GET ผ่านด้วย comm user ของ BOT |
 | `ZCS_CLEARING_RESULT` | Communication Scenario inbound — `ZARI003_CLEARING_HTTP` · Basic | `src/zcs_clearing_result.sco1.xml` | ✅ published locally |
 | Communication Arrangement `ZCA_CLEARING_RESULT` | × `SBPA_DEV` · inbound user เดียวกับ API #4 | — ไม่ขึ้น git | ✅ |
+| `ZCL_ZARI003_REJECT_BATCH` | Class — Phase 8D: `schedule( )` ให้ saver ของ Reject (ZARE002) ลงทะเบียน bgPF · `send( )` POST `reject_batch_id` ไป SBPA แล้วเขียน `reject_message` ทุกใบใน batch · `build_payload` / `parse_response` pure · **path / body เป็น draft รอ spec (Q-04)** | `src/zcl_zari003_reject_batch.clas.abap` | ✅ `30ee98b` (2026-09-29) · 4 test เขียว |
+| `ZCL_ZARI003_REJECT_BATCH_BG` | Class — bgPF operation `if_bgmc_op_single_tx_uncontr` ถือ batch id แล้วเรียก `send( )` หลัง commit | `src/zcl_zari003_reject_batch_bg.clas.abap` | ✅ `30ee98b` |
+| `ZARI003_REJECT_BATCH_REST` | Outbound Service HTTP · path `/` | `src/zari003_reject_batch_rest.sco3.xml` | ✅ `30ee98b` |
+| `ZCS_REJECT_BATCH` | Communication Scenario outbound · OAuth 2.0 client credentials | `src/zcs_reject_batch.sco1.xml` | ✅ published locally |
+| Communication Arrangement `ZCA_REJECT_BATCH` | × `SBPA_DEV` · OAuth 2.0 client ID ของ XSUAA · Service URL = SBPA API gateway ap11 | — ไม่ขึ้น git | ✅ (2026-09-29) |
+| `ZARI003` 010–014 | Message — reject batch: 010 ส่งสำเร็จ · 011 SBPA ปฏิเสธ · 012 ต่อไม่ถึง · 013 ไม่เจอใบใน batch · 014 ลงทะเบียน bgPF ไม่ได้ | `src/zari003.msag.xml` | ✅ `30ee98b` |
 
 ## ของที่ใช้ร่วมจาก package อื่น
 
