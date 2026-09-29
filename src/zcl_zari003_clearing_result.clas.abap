@@ -23,7 +23,7 @@ CLASS zcl_zari003_clearing_result DEFINITION
       gc_sap_error       TYPE c LENGTH 1 VALUE 'E',
 
       gc_msgid           TYPE symsgid           VALUE 'ZARI003',
-      gc_status_complete TYPE ze_request_status VALUE 'C'.
+      gc_status_cleared  TYPE ze_request_status VALUE 'C'.
 
     TYPES:
       "! สิ่งที่ BOT ส่งเข้ามา 1 ใบ
@@ -210,7 +210,7 @@ CLASS zcl_zari003_clearing_result IMPLEMENTATION.
     UPDATE ztar_i002_pymt
       SET clearing_accounting_document = @is_request-clearing_document,
           clearing_fiscal_year         = @is_request-clearing_document_year,
-          status                       = @gc_status_complete,
+          status                       = @gc_status_cleared,
           clearing_message             = @lv_message,
           last_changed_by              = @lv_user,
           last_changed_at              = @lv_now,
