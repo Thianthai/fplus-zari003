@@ -36,8 +36,9 @@ API #3 เป็นของ ZARI003 (ย้ายมาจาก ZARE002 2026-0
 | API #3 รับผล clearing จาก BOT -> stamp `clearing_*` + status C | หน้าจอ (ZARE002) |
 | อ่าน item ทุกบรรทัดของ payment ที่ปิดงานแล้ว | |
 | ประกอบ record ส่ง Composite API เป็น `Completed` | post FI (ZARE002) |
+| ตัวยิง SFDC ให้ปุ่ม Reject ของ ZARE002 (`send( )` — ZARE002 ประกอบ record `Rejected` เอง) | |
 | แบ่งยิงทีละ 25 record ตาม limit ของ Composite API | ตัวการ clear ในระบบ (BOT) · คิวของ BOT API #4 (ZARE002) |
-| เขียน `salesforce_status` / `salesforce_message` ลง header | การส่งผล Reject (ZARE002) |
+| เขียน `salesforce_status` / `salesforce_message` ลง header (path Completed) | ปุ่ม Reject + การเขียนผล Reject ลง table (ZARE002) |
 | คืนผลให้ผู้เรียกไปแสดงต่อ | การรับข้อมูลเข้า (ZARI002) |
 
 ## 3. การส่ง Salesforce
@@ -49,7 +50,7 @@ API #3 เป็นของ ZARI003 (ย้ายมาจาก ZARE002 2026-0
 | 1 subrequest | `PATCH /services/data/v66.0/sobjects/cgcloud__Order_Payment__c/{salesforce_item_id}` |
 | limit | **25 subrequest ต่อ call** — payment ที่มี item มากกว่านี้แบ่งยิงหลายรอบ |
 | field ที่ส่ง | `BST_PaymentCollection__c` · `BST_SAP_Status__c` · `BST_SAP_RejectReason__c` · `BST_SAP_BatchId__c` · `BST_SAP_ResponseDate__c` |
-| ค่า status | `Completed` (path Reject ของ ZARE002 ใช้ `Rejected`) |
+| ค่า status | `Completed` (API #3) · `Rejected` (ปุ่ม Reject ของ ZARE002 ส่งผ่าน `send( )` ของคลาสเดียวกัน) |
 | auth | `ZCL_UTILITY=>create_sfdc_client( )` จาก package `ZBCUTILITY` |
 
 `BST_SAP_BatchId__c` ยังถูกตัดเหลือ 15 ตัว เพราะฝั่ง Salesforce ยังไม่ขยาย field

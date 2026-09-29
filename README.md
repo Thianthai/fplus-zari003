@@ -37,7 +37,7 @@ Salesforce ──▶ SBPA ──▶ ZARI002 ──▶ ZTAR_I002_PYMT  status = N
 **ขอบเขตของ ZARI003** คือขั้นสุดท้าย: รับผล clearing จาก BOT ผ่าน **API #3** (`ZARI003_CLEARING`) บันทึกเลข clearing
 แล้วอ่าน item ประกอบ record ส่งเข้า Composite API และบันทึกผลการส่งลง `salesforce_status` / `salesforce_message`
 
-**ไม่อยู่ในขอบเขต**: หน้าจอ · การ post FI · คิวงานของ BOT (API #4) · การส่งผล Reject (เป็นของ ZARE002) · ตัวการ clear ในระบบ (BOT ทำเอง)
+**ไม่อยู่ในขอบเขต**: หน้าจอ · การ post FI · คิวงานของ BOT (API #4) · ปุ่ม Reject และการเขียนผล Reject ลง table (ZARE002 — แต่ยิงผ่าน `ZCL_ZARI003_SFDC_RESULT=>send( )` ของ ZARI003) · ตัวการ clear ในระบบ (BOT ทำเอง)
 
 ## Object หลัก
 

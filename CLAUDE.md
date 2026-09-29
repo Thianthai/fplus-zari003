@@ -19,18 +19,20 @@
 | Global class | `ZCL_<APP>_<PURPOSE>` | `ZCL_ZARI003_SFDC_RESULT` |
 | Message class | `Z<APP>` | `ZARI003` |
 
-## ⚠️ Code ซ้ำกับ ZARE002 โดยตั้งใจ
+## ⚠️ ตัวส่ง Salesforce ตัวเดียวของทั้ง 2 path
 
-`ZCL_ZARI003_SFDC_RESULT` เป็น **copy** ของ `ZCL_ZARE002_SFDC_RESULT` (repo `fplus-zare002`)
-ตกลงกันไว้ 2026-09-24 ว่าจะแยกขาดตาม WRICEF แทนการทำ class กลาง
+`ZCL_ZARI003_SFDC_RESULT` เป็นตัวประกอบ payload และตัวยิง Salesforce **ตัวเดียว** ของทั้ง flow
+(เดิมเป็น copy ของ `ZCL_ZARE002_SFDC_RESULT` ตั้งแต่ 2026-09-24 → รวมเป็นตัวเดียว 2026-09-29 `7e922d1` / zare002 `7653f57`)
 
-| path | RICEFW | class |
-|---|---|---|
-| Reject -> Salesforce `Rejected` | ZARE002 | `ZCL_ZARE002_SFDC_RESULT` |
-| Clearing เสร็จ -> Salesforce `Completed` | **ZARI003** | `ZCL_ZARI003_SFDC_RESULT` |
+| path | caller | method | ใครเขียน `salesforce_*` |
+|---|---|---|---|
+| Reject -> `Rejected` | ปุ่ม Reject ของ ZARE002 (`ZBP_R_ZARE002` → `rejectItem`) ใน **interaction phase ของ RAP** | `send( )` — ยิงอย่างเดียว ไม่แตะ DB | saver ของ ZARE002 |
+| Clearing สำเร็จ -> `Completed` | `ZCL_ZARI003_CLEARING_RESULT` (API #3) | `send_payment_result( )` — อ่าน item + ยิง + `UPDATE` + `COMMIT WORK` | คลาสนี้เอง |
 
-**ถ้า Salesforce เปลี่ยนชื่อ field, endpoint, หรือ API version ต้องแก้ทั้งสองที่**
-เคยเจอ `INVALID_FIELD` มาแล้วตอนชื่อ field ผิด — ดู `fplus-zare002/docs/06_open_questions.md` OQ-30
+- **ห้ามให้ path Reject เรียก `send_payment_result( )`** — COMMIT ใน RAP ไม่ได้ (runtime error)
+- **แก้คลาสนี้ = กระทบทั้ง Reject และ Completed** ต้องทดสอบทั้ง 2 path · ข้อดีคือ Salesforce เปลี่ยนชื่อ field / endpoint แก้ที่เดียว
+  (เคยเจอ `INVALID_FIELD` ตอนชื่อ field ผิด — `fplus-zare002/docs/06_open_questions.md` OQ-30)
+- ZARE002 จึงพึ่ง ZARI003 → **transport ZARI003 ขึ้นก่อนหรือพร้อม ZARE002 เสมอ**
 
 ## ⚠️ Cross-package — table เป็นของ ZARI002
 
