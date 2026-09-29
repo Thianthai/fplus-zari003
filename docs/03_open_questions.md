@@ -5,3 +5,4 @@
 | Q-01 | **ส่งซ้ำเมื่อ `salesforce_status = E`** — ตอนนี้เก็บผลไว้เฉย ๆ ยังไม่มีกลไกส่งใหม่ ทางเลือก: ปุ่มบนหน้าจอ ZARE002 · scheduled job · ให้ BOT เรียกซ้ำ | ผู้ใช้ + ฟังก์ชันนอล | ⬜ |
 | Q-02 | **ใบที่ `salesforce_id` หรือ `salesforce_item_id` ว่าง** | ✅ **ปิด 2026-09-25** — ZARE002 ปฏิเสธตั้งแต่ขั้น Submit (113) และ Reject (008) ใบแบบนี้จึงไม่มีทางถึง ZARI003 (`fplus-zare002` `9880818`) |
 | Q-03 | **`BST_SAP_BatchId__c` ยาว 15** ขณะที่ `request_id` ยาว 20 ตอนนี้ตัดส่ง 15 ตัวแรก รอ Salesforce ขยาย field | SFDC dev | ⬜ (= OQ-28 ของ ZARE002) |
+| Q-04 | **reject batch → SBPA: spec และการส่งซ้ำ** — `ZCL_ZARI003_REJECT_BATCH` เป็น draft รอ spec API ของ SBPA (path / body / response) · ยิงไม่ผ่านเก็บแค่ `reject_message` ยังไม่มีทางส่งซ้ำ · รายละเอียด `fplus-zare002` OQ-42 / OQ-43 / OQ-45 | SBPA + ผู้ใช้ | ⬜ |
