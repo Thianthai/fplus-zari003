@@ -24,6 +24,9 @@ Salesforce ──▶ SBPA ──▶ ZARI002 ──insert──▶ ZTAR_I002_PYMT
 
 API #3 เป็นของ ZARI003 (ย้ายมาจาก ZARE002 2026-09-28): `ZARI003_CLEARING` -> `ZCL_ZARI003_CLEARING_HTTP` -> `ZCL_ZARI003_CLEARING_RESULT`
 บันทึกเลข clearing สำเร็จแล้วเรียก `ZCL_ZARI003_SFDC_RESULT` ต่อทันที
+
+**แจ้ง Salesforce เฉพาะเคส clearing สำเร็จเท่านั้น** (business ยืนยัน 2026-09-29) — BOT แจ้ง `E` · ไม่เจอใบ · ใบมีเลข clearing อยู่แล้ว
+จะ `RETURN` ก่อนถึง `send_payment_result( )` ทั้งหมด ไม่ต้องแก้โปรแกรม
 สัญญา request/response ของ API #3 อยู่ที่ `fplus-zare002/docs/10_api_contract.md` (ที่เดียวกับ API #1 / #4 ที่ BOT ใช้)
 
 ## 2. ขอบเขต
