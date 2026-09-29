@@ -62,6 +62,36 @@
      <MSGNR>009</MSGNR>
      <TEXT>Clearing result rejected: &amp;1&amp;2&amp;3</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>010</MSGNR>
+     <TEXT>Reject batch &amp;1 sent to SBPA</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>011</MSGNR>
+     <TEXT>SBPA rejected batch &amp;1: HTTP &amp;2 &amp;3</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>012</MSGNR>
+     <TEXT>SBPA not reachable for batch &amp;1: &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>013</MSGNR>
+     <TEXT>No payment found for reject batch &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>014</MSGNR>
+     <TEXT>Could not schedule SBPA notice for batch &amp;1: &amp;2</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
