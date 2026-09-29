@@ -1,12 +1,11 @@
-"! ส่งผลของ payment ที่ปิดงานแล้วกลับ Salesforce ราย item ด้วย Composite API
-"! caller คือ ZARE002 ตอนที่บันทึกเลข clearing สำเร็จ
+"! ส่งผลของ payment กลับ Salesforce ราย item ด้วย Composite API
+"! เป็นตัวส่งกลางของทั้ง 2 path
+"! path Completed -> ZCL_ZARI003_CLEARING_RESULT เรียก send_payment_result หลังบันทึกเลข clearing สำเร็จ
+"! path Rejected -> ปุ่ม Reject ของ ZARE002 ประกอบ record เองแล้วเรียก send ใน interaction phase ของ RAP
+"! path Rejected ห้ามเรียก send_payment_result เพราะ method นั้น UPDATE และ COMMIT WORK เอง
 "! ขอ HTTP client จาก ZCL_UTILITY=>create_sfdc_client ซึ่งขอ token ใหม่และผูก Authorization: Bearer มาให้แล้ว
 "! Client Secret อยู่ใน Communication System ABAP จะมองเห็นแค่ access token
 "! ไม่โยน exception ทุก method คืนผลให้ caller ตรงๆ
-"!
-"! code ชุดยิง Salesforce ในคลาสนี้เป็น copy ของ ZCL_ZARE002_SFDC_RESULT ที่ใช้ส่งผล Reject
-"! ตกลงกันว่าจะแยกขาดตาม RICEFW แทนการทำคลาสกลาง
-"! ถ้า Salesforce เปลี่ยนชื่อ field หรือ endpoint ต้องแก้ทั้งสองคลาสพร้อมกันเสมอ
 CLASS zcl_zari003_sfdc_result DEFINITION
   PUBLIC
   FINAL
@@ -46,6 +45,7 @@ CLASS zcl_zari003_sfdc_result DEFINITION
 
     CONSTANTS:
       "! ค่า picklist BST_SAP_Status__c เป็น case-sensitive
+      gc_status_rejected   TYPE string VALUE 'Rejected',
       gc_status_completed  TYPE string VALUE 'Completed',
 
       "! limit ของ Composite API คือ subrequest ต่อ call

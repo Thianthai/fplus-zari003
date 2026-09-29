@@ -11,12 +11,18 @@ CLASS ltc_sfdc_result DEFINITION FINAL FOR TESTING
     METHODS payload_omits_empty_reason  FOR TESTING.
     "! batch id ถูกตัดเหลือ 15 ตัวตามความยาว field ฝั่ง Salesforce
     METHODS payload_truncates_batch_id  FOR TESTING.
+    "! path Rejected ส่งสถานะ Rejected พร้อม reject reason
+    METHODS payload_rejected_has_reason FOR TESTING.
+    "! reject reason ที่ user พิมพ์มีเครื่องหมายคำพูด ต้องถูก escape ไม่ทำ JSON พัง
+    METHODS payload_escapes_quotes      FOR TESTING.
     "! ทุก subrequest เป็น 204 คือสำเร็จ
     METHODS response_all_204_is_success FOR TESTING.
     "! subrequest ที่พังทำให้ทั้งชุดไม่สำเร็จ และคืน error ตัวที่เป็นต้นเหตุ
     METHODS response_error_is_reported  FOR TESTING.
     "! PROCESSING_HALTED ไม่ใช่ต้นเหตุ ต้องข้ามไปหาตัวจริง
     METHODS response_skips_halted       FOR TESTING.
+    "! HTTP ไม่ใช่ 200 เช่น 401 body เป็น error ระดับบน ต้องอ่าน errorCode ได้
+    METHODS response_non_200_is_failure FOR TESTING.
     "! body ที่ไม่ใช่รูปแบบที่รู้จักต้องไม่ถือว่าสำเร็จ
     METHODS response_garbage_is_error   FOR TESTING.
     "! รูปแบบวันที่ต้องเป็นแบบที่ Salesforce รับ
@@ -24,6 +30,10 @@ CLASS ltc_sfdc_result DEFINITION FINAL FOR TESTING
 
     "! record ตั้งต้น 1 ตัวสำหรับใบที่ปิดงานสำเร็จ
     METHODS sample_record
+      RETURNING VALUE(rt_record) TYPE zcl_zari003_sfdc_result=>tt_record.
+
+    "! record ตั้งต้น 1 ตัวสำหรับใบที่ถูก reject
+    METHODS sample_rejected_record
       RETURNING VALUE(rt_record) TYPE zcl_zari003_sfdc_result=>tt_record.
 
 ENDCLASS.
@@ -36,6 +46,15 @@ CLASS ltc_sfdc_result IMPLEMENTATION.
                            header_sf_id  = 'a5j0000000000001AA'
                            status        = zcl_zari003_sfdc_result=>gc_status_completed
                            batch_id      = '20260815_090039_1200'
+                           response_date = '2026-09-24T10:00:00+0700' ) ).
+  ENDMETHOD.
+
+  METHOD sample_rejected_record.
+    rt_record = VALUE #( ( item_sf_id    = 'a2J0000000000001AA'
+                           header_sf_id  = 'a5j0000000000001AA'
+                           status        = zcl_zari003_sfdc_result=>gc_status_rejected
+                           reject_reason = 'Wrong Amount'
+                           batch_id      = '20260815_090039'
                            response_date = '2026-09-24T10:00:00+0700' ) ).
   ENDMETHOD.
 
@@ -61,6 +80,22 @@ CLASS ltc_sfdc_result IMPLEMENTATION.
 
     " ส่งเข้าไป 20 ตัว ต้องเหลือ 15 ตัวแรก
     cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"BST_SAP_BatchId__c":"20260815_090039"` ) ).
+  ENDMETHOD.
+
+  METHOD payload_rejected_has_reason.
+    DATA(lv_json) = zcl_zari003_sfdc_result=>build_payload( sample_rejected_record( ) ).
+
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"BST_SAP_Status__c":"Rejected"` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"BST_SAP_RejectReason__c":"Wrong Amount"` ) ).
+  ENDMETHOD.
+
+  METHOD payload_escapes_quotes.
+    DATA(lt_record) = sample_rejected_record( ).
+    lt_record[ 1 ]-reject_reason = 'Amount "wrong"'.
+
+    DATA(lv_json) = zcl_zari003_sfdc_result=>build_payload( lt_record ).
+
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `Amount \"wrong\"` ) ).
   ENDMETHOD.
 
   METHOD response_all_204_is_success.
@@ -96,6 +131,17 @@ CLASS ltc_sfdc_result IMPLEMENTATION.
 
     cl_abap_unit_assert=>assert_false( ls_result-success ).
     cl_abap_unit_assert=>assert_equals( act = ls_result-error_code exp = 'STRING_TOO_LONG' ).
+  ENDMETHOD.
+
+  METHOD response_non_200_is_failure.
+    DATA(lv_json) = `[{"message":"Session expired or invalid","errorCode":"INVALID_SESSION_ID"}]`.
+
+    DATA(ls_result) = zcl_zari003_sfdc_result=>parse_response( iv_json = lv_json iv_http_status = 401 ).
+
+    cl_abap_unit_assert=>assert_false( ls_result-success ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-http_status exp = 401 ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-error_code  exp = 'INVALID_SESSION_ID' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-error_index exp = 0 ).
   ENDMETHOD.
 
   METHOD response_garbage_is_error.

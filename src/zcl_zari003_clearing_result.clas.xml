@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>ZCL_ZARI003_CLEARING_RESULT</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>Payment Result to Salesforce - Clearing Result</DESCRIPT>
+    <DESCRIPT>Incoming Payments Result - Clearing Result from SBPA</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
