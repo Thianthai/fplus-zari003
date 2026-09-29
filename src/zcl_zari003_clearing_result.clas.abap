@@ -1,6 +1,7 @@
 "! รับผลการ clear ของ 1 payment จาก BOT แล้วปิดงานฝั่ง SAP
 "! สำเร็จ บันทึกเลข clearing กับปีบัญชี ตั้งสถานะเป็น Cleared แล้วแจ้ง Salesforce ต่อ
-"! ไม่สำเร็จ เก็บเหตุผลไว้อย่างเดียว ใบยังอยู่ในคิวของ API ดึงงาน รอบถัดไป BOT จะหยิบไปทำใหม่เอง หรือ user หยิบไปทำ manual
+"! ไม่สำเร็จ เก็บเหตุผลไว้อย่างเดียว
+"! ใบยังอยู่ในคิว ZI_ZARE002_CLEARING ของ ZARE002 รอบถัดไป BOT จะหยิบไปทำใหม่เอง หรือ user หยิบไปทำ manual
 "! ผลของการแจ้ง Salesforce ไม่ย้อนกลับมาทำให้ clearing เป็นโมฆะ เพราะงานบัญชีเสร็จไปแล้วจริง
 "! การแจ้ง Salesforce และการเขียน salesforce_status เป็นของ ZCL_ZARI003_SFDC_RESULT คลาสนี้แค่เรียกและรับผลมาแสดง
 "! 1 payment เท่ากับ 1 LUW ของตัวเอง ต้องเรียกนอก RAP
@@ -118,7 +119,7 @@ CLASS zcl_zari003_clearing_result IMPLEMENTATION.
 
     " 2. BOT แจ้งว่า clear ไม่สำเร็จ
     " เก็บเหตุผลไว้อย่างเดียว ไม่แตะเลขเอกสารและสถานะ
-    " ใบยังไม่มีเลข clearing จึงยังอยู่ในคิวของ API ดึงงาน คืนถัดไป BOT หยิบไปทำใหม่เอง
+    " ใบยังไม่มีเลข clearing จึงยังอยู่ในคิว ZI_ZARE002_CLEARING ของ ZARE002 คืนถัดไป BOT หยิบไปทำใหม่เอง
     IF is_request-clearing_status = gc_bot_error.
       rs_result-sap_message = message_text(
                                 iv_number = '008'

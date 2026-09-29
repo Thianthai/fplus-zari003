@@ -4,7 +4,7 @@
 "! ถ้า Reject ถูก rollback งานนี้จะหายไปด้วย
 "! งาน background เรียก send ซึ่งยิง SBPA แล้วเขียนผลทับลง reject_message ของทุกใบใน batch
 "! auth เป็น OAuth 2.0 client credentials ของ Communication Arrangement ระบบขอ token ให้เอง
-"! path body และ response ของ SBPA ยังไม่มี spec ตอนนี้เป็น draft รอแก้ตาม OQ-45
+"! path body และ response ของ SBPA ยังไม่มี spec ตอนนี้เป็น draft รอแก้เมื่อได้ spec จาก SBPA
 CLASS zcl_zari003_reject_batch DEFINITION
   PUBLIC
   FINAL
@@ -58,12 +58,12 @@ CLASS zcl_zari003_reject_batch DEFINITION
       gc_service_id    TYPE c LENGTH 40          VALUE 'ZARI003_REJECT_BATCH_REST',
 
       "! path ของ API ฝั่ง SBPA
-      "! ค่าชั่วคราวรอ spec ตาม OQ-45
+      "! ค่าชั่วคราว รอแก้เมื่อได้ spec จาก SBPA
       "! Outbound Service ตั้ง path เป็น / class นี้ใส่ path เต็มเอง
       gc_path          TYPE string VALUE '/reject-batch',
 
       "! ชื่อ field ใน JSON ที่ส่งให้ SBPA
-      "! ค่าชั่วคราวรอ spec ตาม OQ-45
+      "! ค่าชั่วคราว รอแก้เมื่อได้ spec จาก SBPA
       gc_fld_batch_id  TYPE string VALUE 'RejectBatchId',
 
       "! ความยาวของเนื้อหาจาก SBPA ที่ใส่ใน message ได้ต่อ placeholder

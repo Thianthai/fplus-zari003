@@ -36,7 +36,7 @@ CLASS zcl_zari003_reject_batch_bg IMPLEMENTATION.
 
     " ผลการยิงถูกเขียนลง reject_message ใน send แล้ว ไม่ต้องทำอะไรต่อ
     " ไม่โยน exception กลับให้ bgPF เพราะไม่ต้องการให้ระบบยิงซ้ำเอง
-    " การส่งซ้ำรอตัดสินใน OQ-42
+    " ยังไม่มีกลไกส่งซ้ำเมื่อยิงไม่ผ่าน ดูผลได้ที่ reject_message
     NEW zcl_zari003_reject_batch( )->send( gv_batch_id ).
 
   ENDMETHOD.

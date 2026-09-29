@@ -44,6 +44,7 @@ CLASS zcl_zari003_clearing_http DEFINITION
         note     TYPE STANDARD TABLE OF string WITH EMPTY KEY,
       END OF ty_usage.
 
+    "! message class ของ ZARI003
     CONSTANTS gc_msgid TYPE symsgid VALUE 'ZARI003'.
 
     "! แปลง body เป็น request ที่ ZCL_ZARI003_CLEARING_RESULT ใช้ได้
@@ -135,7 +136,7 @@ CLASS zcl_zari003_clearing_http IMPLEMENTATION.
 
       note = VALUE #( ( `ส่งทีละ 1 ใบ` )
                       ( `RequestId รูปแบบ YYYYMMDD_hhmmss ยังไม่บังคับ เก็บไว้รอ log table` )
-                      ( `4 field ถัดมาคือค่าที่ได้จาก API ดึงคิว ส่งกลับมาตรงๆ` )
+                      ( `4 field ถัดมาคือค่าที่ได้จาก OData ClearingItems ของ ZAPI_ZARE002_O4 ส่งกลับมาตรงๆ` )
                       ( `ClearingStatus S คือ clear สำเร็จ ต้องมี ClearingDocument และ ClearingDocumentYear` )
                       ( `ClearingStatus E คือ clear ไม่สำเร็จ ใส่เหตุผลใน ClearingMessage ใบจะยังอยู่ในคิวให้ทำใหม่` )
                       ( `ทุกค่าเป็น string รวมถึงปีบัญชี` )
