@@ -7,7 +7,7 @@
     <ID>ZARI003_CLEARING</ID>
     <VERSION>A</VERSION>
     <LANG>E</LANG>
-    <SHORTTEXT>Incoming Payments Result - Clearing Result from SBPA</SHORTTEXT>
+    <SHORTTEXT>Payment Result - Clearing Result from SBPA</SHORTTEXT>
    </HTTPTEXT>
    <HTTPHDL>
     <UCONSERVHANDLER>

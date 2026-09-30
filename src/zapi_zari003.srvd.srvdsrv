@@ -1,0 +1,4 @@
+@EndUserText.label: 'Payment Result - Rejected Items'
+define service ZAPI_ZARI003 {
+  expose ZI_ZARI003_REJECT_ITEM as RejectedItems;
+}

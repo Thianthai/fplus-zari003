@@ -5,7 +5,7 @@
    <VSEOCLASS>
     <CLSNAME>ZCL_ZARI003_REJECT_BATCH_BG</CLSNAME>
     <LANGU>E</LANGU>
-    <DESCRIPT>Incoming Payments Result - Reject Batch ID to SBPA (BGPF)</DESCRIPT>
+    <DESCRIPT>Payment Result - Reject Batch ID to SBPA (BGPF)</DESCRIPT>
     <STATE>1</STATE>
     <CLSCCINCL>X</CLSCCINCL>
     <FIXPT>X</FIXPT>
