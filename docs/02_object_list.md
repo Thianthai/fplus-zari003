@@ -20,6 +20,11 @@
 | `ZCS_REJECT_BATCH` | Communication Scenario outbound · OAuth 2.0 client credentials | `src/zcs_reject_batch.sco1.xml` | ✅ published locally |
 | Communication Arrangement `ZCA_REJECT_BATCH` | × `SBPA_DEV` · OAuth 2.0 client ID ของ XSUAA · Service URL = SBPA API gateway ap11 | — ไม่ขึ้น git | ✅ (2026-09-29) |
 | `ZARI003` 010–014 | Message — reject batch: 010 ส่งสำเร็จ · 011 SBPA ปฏิเสธ · 012 ต่อไม่ถึง · 013 ไม่เจอใบใน batch · 014 ลงทะเบียน bgPF ไม่ได้ | `src/zari003.msag.xml` | ✅ `30ee98b` |
+| `ZI_ZARI003_REJECT_ITEM` | CDS view — Phase 8F: 1 แถวต่อ item ของใบ `R` ที่มี `reject_batch_id` ให้ SBPA query ไปสรุป email | `src/zi_zari003_reject_item.ddls.asddls` | ✅ `a888bcf` (2026-09-30) |
+| `ZAPI_ZARI003` | Service Definition (Web API) — `RejectedItems` | `src/zapi_zari003.srvd.srvdsrv` | ✅ `a888bcf` |
+| `ZAPI_ZARI003_O4` | Service Binding OData V4 Web API · published | `src/zapi_zari003_o4.srvb.xml` | ✅ `a888bcf` |
+| `ZCS_REJECT_ITEM` | Communication Scenario inbound · Basic · `ZAPI_ZARI003_O4_0001_G4BA` | `src/zcs_reject_item.sco1.xml` | ✅ published locally |
+| Communication Arrangement `ZCA_REJECT_ITEM` | × `SBPA_DEV` · inbound user ตัวเดิม | — ไม่ขึ้น git | ✅ (2026-09-30) |
 
 ## ของที่ใช้ร่วมจาก package อื่น
 
