@@ -85,6 +85,8 @@ CLASS zcl_zari003_sfdc_result DEFINITION
       RETURNING VALUE(rs_result) TYPE ty_result.
 
     "! เวลาปัจจุบันในรูปแบบที่ Salesforce ต้องการ YYYY-MM-DDThh:mm:ss+0700
+    "! เวลา local ได้จาก ZCL_UTILITY=>get_local_datetime ซึ่งอ่าน timezone จาก parameter กลาง
+    "! แปลงไม่สำเร็จจะส่งเวลา UTC พร้อม +0000 แทน
     CLASS-METHODS build_response_date
       RETURNING VALUE(rv_date) TYPE string.
 
@@ -122,10 +124,13 @@ CLASS zcl_zari003_sfdc_result DEFINITION
       "! subrequest ที่ไม่ได้ผิดแต่โดน rollback เพราะ subrequest อื่น
       gc_halted          TYPE string VALUE 'PROCESSING_HALTED',
 
-      "! เวลาประเทศไทยเป็น UTC+7 และไม่มี DST
-      "! ถ้าเปลี่ยน time zone ต้องแก้ทั้ง 2 ค่าพร้อมกัน
-      gc_tz_offset_hours TYPE i      VALUE 7,
+      "! offset ที่ต่อท้ายเวลา local
+      "! get_local_datetime ไม่คืน offset จึงกำหนดไว้ตายตัวตาม timezone ประเทศไทย
+      "! ถ้าเปลี่ยน parameter TIMEZONE เป็นโซนอื่น ต้องแก้ค่านี้ให้ตรงด้วย
       gc_tz_offset_text  TYPE string VALUE '+0700',
+
+      "! offset ของเวลา UTC ใช้ตอนแปลงเป็นเวลา local ไม่สำเร็จ
+      gc_tz_offset_utc   TYPE string VALUE '+0000',
 
       gc_msgid           TYPE symsgid VALUE 'ZARI003',
 
@@ -459,16 +464,24 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
     DATA lv_timestamp TYPE timestampl.
     DATA lv_date      TYPE d.
     DATA lv_time      TYPE t.
+    DATA lv_subrc     TYPE sysubrc.
 
-    GET TIME STAMP FIELD lv_timestamp.
+    zcl_utility=>get_local_datetime( IMPORTING ev_date  = lv_date
+                                               ev_time  = lv_time
+                                               ev_subrc = lv_subrc ).
 
-    lv_timestamp = cl_abap_tstmp=>add( tstmp = lv_timestamp
-                                       secs  = gc_tz_offset_hours * 3600 ).
+    DATA(lv_offset) = gc_tz_offset_text.
 
-    CONVERT TIME STAMP lv_timestamp TIME ZONE 'UTC' INTO DATE lv_date TIME lv_time.
+    " แปลงเป็นเวลา local ไม่สำเร็จ -> ส่งเวลา UTC พร้อม offset ของ UTC
+    " ไม่ส่งเวลา UTC พร้อม +0700 เพราะเวลาจะผิดไป 7 ชั่วโมง
+    IF lv_subrc <> 0.
+      GET TIME STAMP FIELD lv_timestamp.
+      CONVERT TIME STAMP lv_timestamp TIME ZONE 'UTC' INTO DATE lv_date TIME lv_time.
+      lv_offset = gc_tz_offset_utc.
+    ENDIF.
 
     rv_date = |{ lv_date(4) }-{ lv_date+4(2) }-{ lv_date+6(2) }T| &&
-              |{ lv_time(2) }:{ lv_time+2(2) }:{ lv_time+4(2) }{ gc_tz_offset_text }|.
+              |{ lv_time(2) }:{ lv_time+2(2) }:{ lv_time+4(2) }{ lv_offset }|.
 
   ENDMETHOD.
 
