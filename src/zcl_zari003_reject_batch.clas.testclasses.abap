@@ -1,12 +1,14 @@
-"! ทดสอบการสร้าง payload และการแปลผลจาก SBPA โดยไม่ยิงจริงและไม่แตะ DB
+"! ทดสอบการสร้าง payload path และการแปลผลจาก SBPA โดยไม่ยิงจริงและไม่แตะ DB
 CLASS ltc_reject_batch DEFINITION FINAL FOR TESTING
   DURATION SHORT
   RISK LEVEL HARMLESS.
 
   PRIVATE SECTION.
 
-    "! payload มี batch id
+    "! payload เป็นรูปแบบ API Trigger มี invocationContext และ input ที่มี batch id
     METHODS payload_has_batch_id    FOR TESTING.
+    "! path ต่อ trigger id ไว้ระหว่าง prefix กับ runs
+    METHODS path_has_trigger_id     FOR TESTING.
     "! HTTP 2xx คือสำเร็จ และข้อความบอก batch id
     METHODS response_2xx_is_success FOR TESTING.
     "! HTTP 4xx ไม่สำเร็จ ข้อความมี HTTP status และเนื้อหาที่ SBPA ตอบมา
@@ -22,7 +24,14 @@ CLASS ltc_reject_batch IMPLEMENTATION.
   METHOD payload_has_batch_id.
     DATA(lv_json) = zcl_zari003_reject_batch=>build_payload( '20260929_143000' ).
 
-    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"RejectBatchId":"20260929_143000"` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"invocationContext":"${invocation_context}"` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"input":{"RejectBatchID":"20260929_143000"}` ) ).
+  ENDMETHOD.
+
+  METHOD path_has_trigger_id.
+    cl_abap_unit_assert=>assert_equals(
+      act = zcl_zari003_reject_batch=>build_path( `abc-123` )
+      exp = `/public/irpa/runtime/v1/apiTriggers/abc-123/runs` ).
   ENDMETHOD.
 
   METHOD response_2xx_is_success.

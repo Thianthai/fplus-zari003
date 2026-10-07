@@ -2,9 +2,9 @@
 "! caller คือ saver ของปุ่ม Reject ใน ZARE002 ซึ่งเรียก schedule หลังเขียน reject_batch_id ลง table
 "! schedule แค่ลงทะเบียนงาน background (bgPF) ไว้ งานจะเริ่มหลัง commit ของ Reject
 "! ถ้า Reject ถูก rollback งานนี้จะหายไปด้วย
-"! งาน background เรียก send ซึ่งยิง SBPA แล้วเขียนผลทับลง reject_message ของทุกใบใน batch
+"! งาน background เรียก send ซึ่งยิง API Trigger ของ SBPA แล้วเขียนผลทับลง reject_message ของทุกใบใน batch
 "! auth เป็น OAuth 2.0 client credentials ของ Communication Arrangement ระบบขอ token ให้เอง
-"! path body และ response ของ SBPA ยังไม่มี spec ตอนนี้เป็น draft รอแก้เมื่อได้ spec จาก SBPA
+"! API key และ trigger id อ่านจาก Additional Properties ของ arrangement เพราะต่างกันในแต่ละระบบ
 CLASS zcl_zari003_reject_batch DEFINITION
   PUBLIC
   FINAL
@@ -29,11 +29,17 @@ CLASS zcl_zari003_reject_batch DEFINITION
       IMPORTING iv_batch_id     TYPE ztar_i002_pymt-reject_batch_id
       RETURNING VALUE(rv_error) TYPE string.
 
-    "! สร้าง JSON ที่ส่งให้ SBPA
-    "! โครงสร้างเป็น draft รอ spec
+    "! สร้าง JSON ตามรูปแบบ API Trigger ของ SBPA
+    "! invocationContext เป็นค่าคงที่ตามที่ SBPA กำหนด
+    "! input มี reject batch id ตัวเดียว
     CLASS-METHODS build_payload
       IMPORTING iv_batch_id    TYPE ztar_i002_pymt-reject_batch_id
       RETURNING VALUE(rv_json) TYPE string.
+
+    "! path ของ API Trigger ต่อจาก host ของ Communication Arrangement
+    CLASS-METHODS build_path
+      IMPORTING iv_trigger_id  TYPE string
+      RETURNING VALUE(rv_path) TYPE string.
 
     "! แปลผลที่ได้จาก SBPA
     "! HTTP 2xx ถือว่าสำเร็จ
@@ -54,22 +60,42 @@ CLASS zcl_zari003_reject_batch DEFINITION
 
     CONSTANTS:
       "! Communication Scenario และ Outbound Service ขาออกไป SBPA
-      gc_comm_scenario TYPE sxco_cds_object_name VALUE 'ZCS_REJECT_BATCH',
-      gc_service_id    TYPE c LENGTH 40          VALUE 'ZARI003_REJECT_BATCH_REST',
+      gc_comm_scenario      TYPE sxco_cds_object_name VALUE 'ZCS_REJECT_BATCH',
+      gc_service_id         TYPE c LENGTH 40          VALUE 'ZARI003_REJECT_BATCH_REST',
 
-      "! path ของ API ฝั่ง SBPA
-      "! ค่าชั่วคราว รอแก้เมื่อได้ spec จาก SBPA
+      "! ชื่อ Additional Properties ของ ZCS_REJECT_BATCH
+      "! ค่าจริงกรอกใน Communication Arrangement ของแต่ละระบบ
+      gc_prop_api_key       TYPE string VALUE 'API_KEY',
+      gc_prop_trigger_id    TYPE string VALUE 'TRIGGER_ID',
+
+      "! path ของ API Trigger คือ prefix ตามด้วย trigger id แล้วปิดด้วย suffix
       "! Outbound Service ตั้ง path เป็น / class นี้ใส่ path เต็มเอง
-      gc_path          TYPE string VALUE '/reject-batch',
+      gc_path_prefix        TYPE string VALUE '/public/irpa/runtime/v1/apiTriggers/',
+      gc_path_suffix        TYPE string VALUE '/runs',
 
-      "! ชื่อ field ใน JSON ที่ส่งให้ SBPA
-      "! ค่าชั่วคราว รอแก้เมื่อได้ spec จาก SBPA
-      gc_fld_batch_id  TYPE string VALUE 'RejectBatchId',
+      "! header ที่ SBPA ใช้ตรวจ API key นอกเหนือจาก Bearer token
+      gc_header_api_key     TYPE string VALUE 'irpa-api-key',
+
+      "! ชื่อ member ใน JSON ตามรูปแบบ API Trigger ของ SBPA
+      "! ชื่อ input ต้องตรงกับที่ตั้งไว้ใน automation ของ SBPA ตัวพิมพ์เล็กใหญ่มีผล
+      gc_fld_context        TYPE string VALUE 'invocationContext',
+      gc_fld_input          TYPE string VALUE 'input',
+      gc_fld_batch_id       TYPE string VALUE 'RejectBatchID',
+
+      "! ค่า invocationContext ที่ SBPA กำหนดให้ส่งแบบนี้ตรงๆ
+      gc_invocation_context TYPE string VALUE '${invocation_context}',
 
       "! ความยาวของเนื้อหาจาก SBPA ที่ใส่ใน message ได้ต่อ placeholder
-      gc_text_max      TYPE i VALUE 50,
+      gc_text_max           TYPE i VALUE 50,
 
-      gc_msgid         TYPE symsgid VALUE 'ZARI003'.
+      gc_msgid              TYPE symsgid VALUE 'ZARI003'.
+
+    "! อ่าน API key และ trigger id จาก Additional Properties ของ Communication Arrangement
+    "! คืน abap_false เมื่อหา arrangement ไม่เจอ หรือค่าใดค่าหนึ่งว่าง
+    METHODS read_config
+      EXPORTING ev_api_key      TYPE string
+                ev_trigger_id   TYPE string
+      RETURNING VALUE(rv_found) TYPE abap_bool.
 
     "! เขียนผลลง reject_message ของทุกใบใน batch แล้ว COMMIT WORK
     "! ทับข้อความ Reject สำเร็จที่ ZARE002 เขียนไว้ตอน save
@@ -114,8 +140,18 @@ CLASS zcl_zari003_reject_batch IMPLEMENTATION.
   METHOD build_payload.
 
     rv_json = xco_cp_json=>data->builder( )->begin_object(
-                )->add_member( gc_fld_batch_id )->add_string( iv_batch_id
+                )->add_member( gc_fld_context )->add_string( gc_invocation_context
+                )->add_member( gc_fld_input )->begin_object(
+                  )->add_member( gc_fld_batch_id )->add_string( iv_batch_id
+                )->end_object(
                 )->end_object( )->get_data( )->to_string( ).
+
+  ENDMETHOD.
+
+
+  METHOD build_path.
+
+    rv_path = |{ gc_path_prefix }{ iv_trigger_id }{ gc_path_suffix }|.
 
   ENDMETHOD.
 
@@ -144,6 +180,9 @@ CLASS zcl_zari003_reject_batch IMPLEMENTATION.
 
   METHOD send.
 
+    DATA lv_api_key    TYPE string.
+    DATA lv_trigger_id TYPE string.
+
     " 1. ไม่มีใบใน batch นี้ ไม่ต้องยิง
     SELECT SINGLE @abap_true
       FROM ztar_i002_pymt
@@ -156,7 +195,18 @@ CLASS zcl_zari003_reject_batch IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " 2. ยิง SBPA
+    " 2. อ่าน API key และ trigger id ของระบบนี้
+    " ไม่มีค่าแปลว่ายังไม่ได้กรอกใน Communication Arrangement จึงไม่ยิง
+    IF read_config( IMPORTING ev_api_key    = lv_api_key
+                              ev_trigger_id = lv_trigger_id ) = abap_false.
+      rs_result-message = message_text( iv_number = '015'
+                                        iv_v1     = iv_batch_id ).
+      save_message( iv_batch_id = iv_batch_id
+                    iv_message  = rs_result-message ).
+      RETURN.
+    ENDIF.
+
+    " 3. ยิง API Trigger ของ SBPA
     " token ของ OAuth 2.0 ระบบขอให้เองจากการตั้งค่าใน Communication Arrangement
     TRY.
         DATA(lo_destination) = cl_http_destination_provider=>create_by_comm_arrangement(
@@ -167,9 +217,11 @@ CLASS zcl_zari003_reject_batch IMPLEMENTATION.
 
         DATA(lo_request) = lo_client->get_http_request( ).
 
-        lo_request->set_uri_path( gc_path ).
+        lo_request->set_uri_path( build_path( lv_trigger_id ) ).
         lo_request->set_header_field( i_name  = 'Content-Type'
                                       i_value = 'application/json' ).
+        lo_request->set_header_field( i_name  = gc_header_api_key
+                                      i_value = lv_api_key ).
         lo_request->set_text( build_payload( iv_batch_id ) ).
 
         DATA(lo_response) = lo_client->execute( if_web_http_client=>post ).
@@ -189,9 +241,52 @@ CLASS zcl_zari003_reject_batch IMPLEMENTATION.
                                               iv_v2     = lx_root->get_text( ) ).
     ENDTRY.
 
-    " 3. เขียนผลทับข้อความ Reject สำเร็จที่ ZARE002 เขียนไว้
+    " 4. เขียนผลทับข้อความ Reject สำเร็จที่ ZARE002 เขียนไว้
     save_message( iv_batch_id = iv_batch_id
                   iv_message  = rs_result-message ).
+
+  ENDMETHOD.
+
+
+  METHOD read_config.
+
+    DATA lr_scenario TYPE if_com_scenario_factory=>ty_query-cscn_id_range.
+
+    CLEAR: ev_api_key,
+           ev_trigger_id.
+
+    rv_found = abap_false.
+
+    TRY.
+        lr_scenario = VALUE #( ( sign = 'I' option = 'EQ' low = gc_comm_scenario ) ).
+
+        cl_com_arrangement_factory=>create_instance( )->query_ca(
+          EXPORTING is_query           = VALUE #( cscn_id_range = lr_scenario )
+          IMPORTING et_com_arrangement = DATA(lt_arrangement) ).
+
+        " scenario นี้ผูกได้ระบบละ 1 arrangement เท่านั้น จึงใช้ตัวแรก
+        IF lt_arrangement IS INITIAL.
+          RETURN.
+        ENDIF.
+
+        DATA(lo_arrangement) = lt_arrangement[ 1 ].
+        DATA(lt_property)    = lo_arrangement->get_properties( ).
+
+        LOOP AT lt_property INTO DATA(ls_property).
+          CASE ls_property-name.
+            WHEN gc_prop_api_key.
+              ev_api_key = VALUE #( ls_property-values[ 1 ] OPTIONAL ).
+            WHEN gc_prop_trigger_id.
+              ev_trigger_id = VALUE #( ls_property-values[ 1 ] OPTIONAL ).
+          ENDCASE.
+        ENDLOOP.
+
+      CATCH cx_root.
+        " อ่าน arrangement ไม่ได้ ถือว่าไม่มีค่า
+        RETURN.
+    ENDTRY.
+
+    rv_found = xsdbool( ev_api_key IS NOT INITIAL AND ev_trigger_id IS NOT INITIAL ).
 
   ENDMETHOD.
 

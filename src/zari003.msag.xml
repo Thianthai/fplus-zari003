@@ -92,6 +92,12 @@
      <MSGNR>014</MSGNR>
      <TEXT>Could not schedule SBPA notice for batch &amp;1: &amp;2</TEXT>
     </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZARI003</ARBGB>
+     <MSGNR>015</MSGNR>
+     <TEXT>Reject batch &amp;1: API_KEY or TRIGGER_ID missing in ZCA_REJECT_BATCH</TEXT>
+    </T100>
    </T100>
   </asx:values>
  </asx:abap>
