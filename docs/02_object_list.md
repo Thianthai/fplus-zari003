@@ -14,7 +14,7 @@
 | `ZARI003_CLEARING` | HTTP Service — `/sap/bc/http/sap/ZARI003_CLEARING` · inbound `ZARI003_CLEARING_HTTP` | `src/zari003_clearing.http.xml` | ✅ `97054a4` · GET ผ่านด้วย comm user ของ BOT |
 | `ZCS_CLEARING_RESULT` | Communication Scenario inbound — `ZARI003_CLEARING_HTTP` · Basic | `src/zcs_clearing_result.sco1.xml` | ✅ published locally |
 | Communication Arrangement `ZCA_CLEARING_RESULT` | × `SBPA_DEV` · inbound user เดียวกับ API #4 | — ไม่ขึ้น git | ✅ |
-| `ZCL_ZARI003_REJECT_BATCH` | Class — Phase 8D: `schedule( )` ให้ saver ของ Reject (ZARE002) ลงทะเบียน bgPF · `send( )` POST `reject_batch_id` ไป SBPA แล้วเขียน `reject_message` ทุกใบใน batch · `build_payload` / `parse_response` pure · **path / body เป็น draft รอ spec (Q-04)** | `src/zcl_zari003_reject_batch.clas.abap` | ✅ `30ee98b` (2026-09-29) · 4 test เขียว |
+| `ZCL_ZARI003_REJECT_BATCH` | Class — Phase 8D: `schedule( )` ให้ saver ของ Reject (ZARE002) ลงทะเบียน bgPF · `send( )` POST `reject_batch_id` ไป SBPA แล้วเขียน `reject_message` ทุกใบใน batch · `build_payload` / `parse_response` pure · path / body ตาม API Trigger จริงของ SBPA (`a89823e` 2026-10-07) | `src/zcl_zari003_reject_batch.clas.abap` | ✅ `30ee98b` (2026-09-29) · 4 test เขียว |
 | `ZCL_ZARI003_REJECT_BATCH_BG` | Class — bgPF operation `if_bgmc_op_single_tx_uncontr` ถือ batch id แล้วเรียก `send( )` หลัง commit | `src/zcl_zari003_reject_batch_bg.clas.abap` | ✅ `30ee98b` |
 | `ZARI003_REJECT_BATCH_REST` | Outbound Service HTTP · path `/` | `src/zari003_reject_batch_rest.sco3.xml` | ✅ `30ee98b` |
 | `ZCS_REJECT_BATCH` | Communication Scenario outbound · OAuth 2.0 client credentials | `src/zcs_reject_batch.sco1.xml` | ✅ published locally |
@@ -25,6 +25,8 @@
 | `ZAPI_ZARI003_O4` | Service Binding OData V4 Web API · published | `src/zapi_zari003_o4.srvb.xml` | ✅ `a888bcf` |
 | `ZCS_REJECT_ITEM` | Communication Scenario inbound · Basic · `ZAPI_ZARI003_O4_0001_G4BA` | `src/zcs_reject_item.sco1.xml` | ✅ published locally |
 | Communication Arrangement `ZCA_REJECT_ITEM` | × `SBPA_DEV` · inbound user ตัวเดิม | — ไม่ขึ้น git | ✅ (2026-09-30) |
+| `ZE_SBPA_API_KEY` / `ZE_SBPA_TRIGGER_ID` | Data element CHAR 128 / CHAR 36 — type ของ Additional Properties `API_KEY` / `TRIGGER_ID` ใน `ZCS_REJECT_BATCH` | `src/ze_sbpa_*.dtel.xml` | ✅ `a89823e` (2026-10-07) |
+| `ZARI003` 015 | Message — ไม่มี API_KEY / TRIGGER_ID ใน `ZCA_REJECT_BATCH` | `src/zari003.msag.xml` | ✅ `a89823e` |
 
 ## ของที่ใช้ร่วมจาก package อื่น
 
