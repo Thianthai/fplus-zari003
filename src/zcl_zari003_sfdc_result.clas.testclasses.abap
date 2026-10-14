@@ -15,12 +15,12 @@ CLASS ltc_sfdc_result DEFINITION FINAL FOR TESTING
     METHODS payload_rejected_has_reason FOR TESTING.
     "! reject reason ที่ user พิมพ์มีเครื่องหมายคำพูด ต้องถูก escape ไม่ทำ JSON พัง
     METHODS payload_escapes_quotes      FOR TESTING.
-    "! ทุก subrequest เป็น 204 คือสำเร็จ
-    METHODS response_all_204_is_success FOR TESTING.
-    "! subrequest ที่พังทำให้ทั้งชุดไม่สำเร็จ และคืน error ตัวที่เป็นต้นเหตุ
+    "! ทุก record success เป็น true คือสำเร็จ
+    METHODS response_all_success        FOR TESTING.
+    "! record ที่พังทำให้ทั้งชุดไม่สำเร็จ และคืน error ตัวที่เป็นต้นเหตุ
     METHODS response_error_is_reported  FOR TESTING.
-    "! PROCESSING_HALTED ไม่ใช่ต้นเหตุ ต้องข้ามไปหาตัวจริง
-    METHODS response_skips_halted       FOR TESTING.
+    "! ALL_OR_NONE_OPERATION_ROLLED_BACK ไม่ใช่ต้นเหตุ ต้องข้ามไปหาตัวจริง
+    METHODS response_skips_rolled_back  FOR TESTING.
     "! HTTP ไม่ใช่ 200 เช่น 401 body เป็น error ระดับบน ต้องอ่าน errorCode ได้
     METHODS response_non_200_is_failure FOR TESTING.
     "! body ที่ไม่ใช่รูปแบบที่รู้จักต้องไม่ถือว่าสำเร็จ
@@ -62,8 +62,9 @@ CLASS ltc_sfdc_result IMPLEMENTATION.
     DATA(lv_json) = zcl_zari003_sfdc_result=>build_payload( sample_record( ) ).
 
     cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"allOrNone":true` ) ).
-    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"method":"PATCH"` ) ).
-    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `cgcloud__Order_Payment__c/a2J0000000000001AA` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"records":[` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"attributes":{"type":"cgcloud__Order_Payment__c"}` ) ).
+    cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"Id":"a2J0000000000001AA"` ) ).
     cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"BST_PaymentCollection__c":"a5j0000000000001AA"` ) ).
     cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"BST_SAP_Status__c":"Completed"` ) ).
     cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `"BST_SAP_ResponseDate__c":"2026-09-24T10:00:00+0700"` ) ).
@@ -98,9 +99,9 @@ CLASS ltc_sfdc_result IMPLEMENTATION.
     cl_abap_unit_assert=>assert_true( xsdbool( lv_json CS `Amount \"wrong\"` ) ).
   ENDMETHOD.
 
-  METHOD response_all_204_is_success.
-    DATA(lv_json) = `{"compositeResponse":[{"body":null,"httpHeaders":{},"httpStatusCode":204,"referenceId":"item1"},`
-                 && `{"body":null,"httpHeaders":{},"httpStatusCode":204,"referenceId":"item2"}]}`.
+  METHOD response_all_success.
+    DATA(lv_json) = `[{"id":"a2J0000000000001AA","success":true,"errors":[]},`
+                 && `{"id":"a2J0000000000002AA","success":true,"errors":[]}]`.
 
     DATA(ls_result) = zcl_zari003_sfdc_result=>parse_response( iv_json = lv_json iv_http_status = 200 ).
 
@@ -110,27 +111,28 @@ CLASS ltc_sfdc_result IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD response_error_is_reported.
-    DATA(lv_json) = `{"compositeResponse":[{"body":null,"httpStatusCode":204,"referenceId":"item1"},`
-                 && `{"body":[{"errorCode":"NOT_FOUND","message":"The requested resource does not exist"}],`
-                 && `"httpStatusCode":404,"referenceId":"item2"}]}`.
+    DATA(lv_json) = `[{"id":"a2J0000000000001AA","success":false,"errors":[`
+                 && `{"statusCode":"NOT_FOUND","message":"The requested resource does not exist","fields":[]}]}]`.
 
     DATA(ls_result) = zcl_zari003_sfdc_result=>parse_response( iv_json = lv_json iv_http_status = 200 ).
 
     cl_abap_unit_assert=>assert_false( ls_result-success ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-error_code exp = 'NOT_FOUND' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-error_code  exp = 'NOT_FOUND' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-error_index exp = 1 ).
     cl_abap_unit_assert=>assert_true( xsdbool( ls_result-error_message CS 'does not exist' ) ).
   ENDMETHOD.
 
-  METHOD response_skips_halted.
-    DATA(lv_json) = `{"compositeResponse":[{"body":[{"errorCode":"PROCESSING_HALTED","message":"halted"}],`
-                 && `"httpStatusCode":400,"referenceId":"item1"},`
-                 && `{"body":[{"errorCode":"STRING_TOO_LONG","message":"data value too large"}],`
-                 && `"httpStatusCode":400,"referenceId":"item2"}]}`.
+  METHOD response_skips_rolled_back.
+    DATA(lv_json) = `[{"id":"a2J0000000000001AA","success":false,"errors":[`
+                 && `{"statusCode":"ALL_OR_NONE_OPERATION_ROLLED_BACK","message":"rolled back","fields":[]}]},`
+                 && `{"id":null,"success":false,"errors":[`
+                 && `{"statusCode":"STRING_TOO_LONG","message":"data value too large","fields":["BST_SAP_RejectReason__c"]}]}]`.
 
     DATA(ls_result) = zcl_zari003_sfdc_result=>parse_response( iv_json = lv_json iv_http_status = 200 ).
 
     cl_abap_unit_assert=>assert_false( ls_result-success ).
-    cl_abap_unit_assert=>assert_equals( act = ls_result-error_code exp = 'STRING_TOO_LONG' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-error_code  exp = 'STRING_TOO_LONG' ).
+    cl_abap_unit_assert=>assert_equals( act = ls_result-error_index exp = 2 ).
   ENDMETHOD.
 
   METHOD response_non_200_is_failure.

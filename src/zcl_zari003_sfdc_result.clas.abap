@@ -1,4 +1,5 @@
-"! ส่งผลของ payment กลับ Salesforce ราย item ด้วย Composite API
+"! ส่งผลของ payment กลับ Salesforce ราย item ด้วย sObject Collections API
+"! 1 call ต่อ 1 payment แบบ allOrNone ข้อมูลทั้งใบจึงเปลี่ยนพร้อมกันหรือไม่เปลี่ยนเลย
 "! เป็นตัวส่งกลางของทั้ง 2 path
 "! path Completed -> ZCL_ZARI003_CLEARING_RESULT เรียก send_payment_result หลังบันทึกเลข clearing สำเร็จ
 "! path Rejected -> ปุ่ม Reject ของ ZARE002 ประกอบ record เองแล้วเรียก send ใน interaction phase ของ RAP
@@ -14,7 +15,7 @@ CLASS zcl_zari003_sfdc_result DEFINITION
   PUBLIC SECTION.
 
     TYPES:
-      "! 1 record = 1 item บน cgcloud__Order_Payment__c เท่ากับ 1 subrequest ใน composite
+      "! 1 record = 1 item บน cgcloud__Order_Payment__c เท่ากับ 1 record ใน sObject Collections
       BEGIN OF ty_record,
         item_sf_id    TYPE c LENGTH 18,
         header_sf_id  TYPE c LENGTH 18,
@@ -25,8 +26,9 @@ CLASS zcl_zari003_sfdc_result DEFINITION
       END OF ty_record,
       tt_record TYPE STANDARD TABLE OF ty_record WITH EMPTY KEY,
 
-      "! ผลของ 1 composite call
+      "! ผลของ 1 call
       "! error_code มาจาก Salesforce เช่น STRING_TOO_LONG หรือจากคลาสนี้เอง เช่น NOT_REACHABLE
+      "! error_index คือลำดับ record ที่เป็นต้นเหตุ เริ่มที่ 1
       BEGIN OF ty_result,
         http_status   TYPE i,
         success       TYPE abap_bool,
@@ -48,8 +50,9 @@ CLASS zcl_zari003_sfdc_result DEFINITION
       gc_status_rejected   TYPE string VALUE 'Rejected',
       gc_status_completed  TYPE string VALUE 'Completed',
 
-      "! limit ของ Composite API คือ subrequest ต่อ call
-      gc_max_records       TYPE i      VALUE 25,
+      "! limit ของ sObject Collections คือ record ต่อ call
+      "! ส่ง 1 payment ต่อ 1 call และ 1 payment ไม่มี item เกินค่านี้
+      gc_max_records       TYPE i      VALUE 200,
 
       "! error_code ของคลาสนี้เอง ไม่ได้มาจาก Salesforce
       gc_err_not_reachable TYPE string VALUE 'NOT_REACHABLE',
@@ -62,7 +65,7 @@ CLASS zcl_zari003_sfdc_result DEFINITION
 
     "! ส่งผลของ payment 1 ใบกลับ Salesforce แล้วเขียนผลลง header
     "! อ่าน item ของใบนั้นเองทั้งหมด caller ส่งมาแค่ payment uuid
-    "! แบ่งยิงทีละ 25 record ตาม limit ของ Composite API
+    "! ส่งทั้งใบใน call เดียว แบ่งชุดเฉพาะเมื่อเกิน limit ของ sObject Collections ซึ่งไม่ควรเกิด
     "! ชุดใดชุดหนึ่งไม่สำเร็จถือว่าทั้งใบไม่สำเร็จ แล้วให้ส่งซ้ำทั้งใบทีหลัง
     "! การ PATCH ซ้ำด้วยค่าเดิมไม่มีผลเสีย Salesforce เขียนทับค่าเดิม
     "! ใบที่ไม่มี item จะไม่เขียนอะไรลง header เลย
@@ -70,15 +73,15 @@ CLASS zcl_zari003_sfdc_result DEFINITION
       IMPORTING iv_payment_uuid  TYPE sysuuid_x16
       RETURNING VALUE(rs_result) TYPE ty_payment_result.
 
-    "! สร้าง JSON ของ Composite API แบบ allOrNone และ 1 PATCH subrequest ต่อ record
+    "! สร้าง JSON ของ sObject Collections แบบ allOrNone และ 1 record ต่อ 1 item
     "! ใช้ builder เพราะ transformation อัตโนมัติจะทำชื่อที่ลงท้าย __c พัง และ escape ข้อความให้
     "! ไม่ส่ง reject reason ถ้าว่าง
     CLASS-METHODS build_payload
       IMPORTING it_record      TYPE tt_record
       RETURNING VALUE(rv_json) TYPE string.
 
-    "! อ่าน compositeResponse
-    "! สำเร็จเมื่อ HTTP 200 และทุก subrequest เป็น 204
+    "! อ่านผลของ sObject Collections ซึ่งเป็น array ผลต่อ record
+    "! สำเร็จเมื่อ HTTP 200 และทุก record success เป็น true
     CLASS-METHODS parse_response
       IMPORTING iv_json          TYPE string
                 iv_http_status   TYPE i
@@ -90,9 +93,10 @@ CLASS zcl_zari003_sfdc_result DEFINITION
     CLASS-METHODS build_response_date
       RETURNING VALUE(rv_date) TYPE string.
 
-    "! ขอ token สำเร็จ ยิง POST composite 1 ครั้ง และอ่านผล
-    "! ขอ token ไม่สำเร็จ คืน error_code ที่ขึ้นต้นด้วย TOKEN_ โดยไม่ยิง POST composite
+    "! ขอ token สำเร็จ ยิง PATCH sObject Collections 1 ครั้ง และอ่านผล
+    "! ขอ token ไม่สำเร็จ คืน error_code ที่ขึ้นต้นด้วย TOKEN_ โดยไม่ยิง
     "! ต่อไม่ถึงคืน HTTP 0 พร้อม NOT_REACHABLE ให้ caller โดยตรง
+    "! caller ต้องส่ง record ของ payment เดียวต่อ 1 ครั้ง
     METHODS send
       IMPORTING it_record        TYPE tt_record
       RETURNING VALUE(rs_result) TYPE ty_result.
@@ -100,46 +104,45 @@ CLASS zcl_zari003_sfdc_result DEFINITION
   PRIVATE SECTION.
 
     CONSTANTS:
-      "! Composite API รับได้ 25 subrequest ต่อ call
-      gc_path_composite  TYPE string VALUE '/services/data/v66.0/composite',
+      "! sObject Collections สำหรับ update หลาย record ด้วย Id ใน call เดียว
+      gc_path_collections TYPE string VALUE '/services/data/v66.0/composite/sobjects',
 
-      "! url ของแต่ละ subrequest ต่อด้วย record id ของ item
-      gc_path_sobject    TYPE string VALUE '/services/data/v66.0/sobjects/cgcloud__Order_Payment__c/',
+      "! object ของ item ฝั่ง Salesforce ใส่ใน attributes ของทุก record
+      gc_sobject_type     TYPE string VALUE 'cgcloud__Order_Payment__c',
 
       "! ชื่อ field จาก API
-      gc_fld_collection  TYPE string VALUE 'BST_PaymentCollection__c',
-      gc_fld_status      TYPE string VALUE 'BST_SAP_Status__c',
-      gc_fld_reason      TYPE string VALUE 'BST_SAP_RejectReason__c',
-      gc_fld_batch       TYPE string VALUE 'BST_SAP_BatchId__c',
-      gc_fld_date        TYPE string VALUE 'BST_SAP_ResponseDate__c',
+      gc_fld_collection   TYPE string VALUE 'BST_PaymentCollection__c',
+      gc_fld_status       TYPE string VALUE 'BST_SAP_Status__c',
+      gc_fld_reason       TYPE string VALUE 'BST_SAP_RejectReason__c',
+      gc_fld_batch        TYPE string VALUE 'BST_SAP_BatchId__c',
+      gc_fld_date         TYPE string VALUE 'BST_SAP_ResponseDate__c',
 
       "! ความยาว BST_SAP_BatchId__c ฝั่ง Salesforce
       "! request_id ฝั่ง SAP ยาว 20 แต่ตัดให้ Salesforce 15
-      gc_batch_id_max    TYPE i      VALUE 15,
+      gc_batch_id_max     TYPE i      VALUE 15,
 
       "! HTTP status
-      gc_http_ok         TYPE i      VALUE 200,
-      gc_http_no_content TYPE i      VALUE 204,
+      gc_http_ok          TYPE i      VALUE 200,
 
-      "! subrequest ที่ไม่ได้ผิดแต่โดน rollback เพราะ subrequest อื่น
-      gc_halted          TYPE string VALUE 'PROCESSING_HALTED',
+      "! record ที่ไม่ได้ผิดแต่โดน rollback เพราะ record อื่นใน call เดียวกัน
+      gc_rolled_back      TYPE string VALUE 'ALL_OR_NONE_OPERATION_ROLLED_BACK',
 
       "! offset ที่ต่อท้ายเวลา local
       "! get_local_datetime ไม่คืน offset จึงกำหนดไว้ตายตัวตาม timezone ประเทศไทย
       "! ถ้าเปลี่ยน parameter TIMEZONE เป็นโซนอื่น ต้องแก้ค่านี้ให้ตรงด้วย
-      gc_tz_offset_text  TYPE string VALUE '+0700',
+      gc_tz_offset_text   TYPE string VALUE '+0700',
 
       "! offset ของเวลา UTC ใช้ตอนแปลงเป็นเวลา local ไม่สำเร็จ
-      gc_tz_offset_utc   TYPE string VALUE '+0000',
+      gc_tz_offset_utc    TYPE string VALUE '+0000',
 
-      gc_msgid           TYPE symsgid VALUE 'ZARI003',
+      gc_msgid            TYPE symsgid VALUE 'ZARI003',
 
       "! ตัดข้อความจาก Salesforce ก่อนใส่ placeholder ของ message class
-      gc_message_max     TYPE i      VALUE 50.
+      gc_message_max      TYPE i      VALUE 50.
 
     TYPES:
-      "! error 1 ก้อนจาก compositeResponse
-      "! index คือลำดับ subrequest ที่พัง
+      "! error 1 ก้อนจากผลของ sObject Collections
+      "! index คือลำดับ record ที่เป็นเจ้าของ error
       BEGIN OF ty_error,
         error_code TYPE string,
         message    TYPE string,
@@ -200,7 +203,8 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
 
     rs_result-record_count = lines( lt_record ).
 
-    " 2. แบ่งยิงทีละ 25 record ตาม limit ของ Composite API
+    " 2. ส่งทั้งใบใน call เดียว
+    " แบ่งชุดเฉพาะเมื่อ item เกิน limit ของ sObject Collections ซึ่งไม่ควรเกิด
     LOOP AT lt_record INTO DATA(ls_record).
       APPEND ls_record TO lt_batch.
 
@@ -321,29 +325,28 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
     DATA(lo_builder) = xco_cp_json=>data->builder( ).
 
     lo_builder->begin_object(
-      )->add_member( 'allOrNone'        )->add_boolean( abap_true
-      )->add_member( 'compositeRequest' )->begin_array( ).
+      )->add_member( 'allOrNone' )->add_boolean( abap_true
+      )->add_member( 'records'   )->begin_array( ).
 
+    " 1 record ต่อ 1 item ระบุ item ด้วย Id และระบุ object ใน attributes
     LOOP AT it_record INTO DATA(ls_record).
-      DATA(lv_index) = sy-tabix.
-
       lo_builder->begin_object(
-        )->add_member( 'method'      )->add_string( 'PATCH'
-        )->add_member( 'url'         )->add_string( |{ gc_path_sobject }{ ls_record-item_sf_id }|
-        )->add_member( 'referenceId' )->add_string( |item{ lv_index }|
-        )->add_member( 'body'        )->begin_object(
-          )->add_member( gc_fld_collection )->add_string( ls_record-header_sf_id
-          )->add_member( gc_fld_status     )->add_string( ls_record-status
-          )->add_member( gc_fld_batch      )->add_string( substring( val = CONV string( ls_record-batch_id )
-                                                                     len = nmin( val1 = strlen( CONV string( ls_record-batch_id ) )
-                                                                                 val2 = gc_batch_id_max ) )
-          )->add_member( gc_fld_date       )->add_string( ls_record-response_date ).
+        )->add_member( 'attributes' )->begin_object(
+          )->add_member( 'type' )->add_string( gc_sobject_type
+        )->end_object(
+        )->add_member( 'Id'              )->add_string( ls_record-item_sf_id
+        )->add_member( gc_fld_collection )->add_string( ls_record-header_sf_id
+        )->add_member( gc_fld_status     )->add_string( ls_record-status
+        )->add_member( gc_fld_batch      )->add_string( substring( val = CONV string( ls_record-batch_id )
+                                                                   len = nmin( val1 = strlen( CONV string( ls_record-batch_id ) )
+                                                                               val2 = gc_batch_id_max ) )
+        )->add_member( gc_fld_date       )->add_string( ls_record-response_date ).
 
       IF ls_record-reject_reason IS NOT INITIAL.
         lo_builder->add_member( gc_fld_reason )->add_string( ls_record-reject_reason ).
       ENDIF.
 
-      lo_builder->end_object( )->end_object( ).
+      lo_builder->end_object( ).
     ENDLOOP.
 
     rv_json = lo_builder->end_array( )->end_object( )->get_data( )->to_string( ).
@@ -353,14 +356,18 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
 
   METHOD parse_response.
 
-    rs_result-http_status = iv_http_status.
-
-    DATA lt_status TYPE STANDARD TABLE OF i WITH EMPTY KEY.
-    DATA lt_error  TYPE tt_error.
-    DATA lv_member TYPE string.
+    DATA lt_success TYPE STANDARD TABLE OF abap_bool WITH EMPTY KEY.
+    DATA lt_error   TYPE tt_error.
+    DATA lv_member  TYPE string.
+    DATA lv_depth   TYPE i.
+    DATA lv_record  TYPE i.
 
     FIELD-SYMBOLS <lfs_error> TYPE ty_error.
 
+    rs_result-http_status = iv_http_status.
+
+    " ผลปกติเป็น array ของ record แต่ละ record มี id success และ errors
+    " เมื่อ HTTP ไม่ใช่ 200 body เป็น array ของ error ระดับ call ที่มี errorCode และ message
     TRY.
         DATA(lo_reader) = cl_sxml_string_reader=>create( cl_abap_conv_codepage=>create_out( )->convert( iv_json ) ).
 
@@ -373,6 +380,7 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
           CASE lo_node->type.
 
             WHEN if_sxml_node=>co_nt_element_open.
+              lv_depth += 1.
               DATA(lo_open) = CAST if_sxml_open_element( lo_node ).
 
               CLEAR lv_member.
@@ -382,19 +390,27 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
                 ENDIF.
               ENDLOOP.
 
-              " ทุก object เป็น error ที่เป็นไปได้ ตัวที่ไม่มี errorCode จะถูกทิ้งตอนท้าย
+              " object ชั้นที่ 2 คือผลของ record 1 ตัว หรือ error ระดับ call
+              " object ที่ลึกกว่านั้นคือ error ของ record ล่าสุด
+              " ทุก object เป็น error ที่เป็นไปได้ ตัวที่ไม่มี code จะถูกทิ้งตอนท้าย
               IF lo_open->qname-name = 'object'.
+                IF lv_depth = 2.
+                  lv_record += 1.
+                ENDIF.
                 APPEND INITIAL LINE TO lt_error ASSIGNING <lfs_error>.
-                <lfs_error>-index = lines( lt_status ) + 1.
+                <lfs_error>-index = lv_record.
               ENDIF.
+
+            WHEN if_sxml_node=>co_nt_element_close.
+              lv_depth -= 1.
 
             WHEN if_sxml_node=>co_nt_value.
               DATA(lv_value) = CAST if_sxml_value_node( lo_node )->get_value( ).
 
               CASE lv_member.
-                WHEN 'httpStatusCode'.
-                  APPEND CONV i( lv_value ) TO lt_status.
-                WHEN 'errorCode'.
+                WHEN 'success'.
+                  APPEND xsdbool( lv_value = 'true' ) TO lt_success.
+                WHEN 'statusCode' OR 'errorCode'.
                   IF <lfs_error> IS ASSIGNED.
                     <lfs_error>-error_code = lv_value.
                   ENDIF.
@@ -415,10 +431,10 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
     ENDTRY.
 
     DELETE lt_error WHERE error_code IS INITIAL.
-    rs_result-record_count = lines( lt_status ).
+    rs_result-record_count = lines( lt_success ).
 
     " body ไม่ใช่ format ที่รู้จัก
-    IF lt_status IS INITIAL AND lt_error IS INITIAL.
+    IF lt_success IS INITIAL AND lt_error IS INITIAL.
       rs_result-success       = abap_false.
       rs_result-error_code    = gc_err_parse.
       rs_result-error_message = substring( val = iv_json
@@ -426,25 +442,19 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    " สำเร็จเมื่อ call ได้ 200 และทุก subrequest เป็น 204
-    DATA(lv_all_no_content) = abap_true.
-    LOOP AT lt_status INTO DATA(lv_status) WHERE table_line <> gc_http_no_content.
-      lv_all_no_content = abap_false.
-      EXIT.
-    ENDLOOP.
-
+    " สำเร็จเมื่อ call ได้ 200 และทุก record success เป็น true
     IF iv_http_status = gc_http_ok
-       AND lt_status IS NOT INITIAL
-       AND lv_all_no_content = abap_true.
+       AND lt_success IS NOT INITIAL
+       AND NOT line_exists( lt_success[ table_line = abap_false ] ).
       rs_result-success = abap_true.
       RETURN.
     ENDIF.
 
     rs_result-success = abap_false.
 
-    " error ต้นเหตุคือตัวแรกที่ไม่ใช่ PROCESSING_HALTED ถ้าไม่มีเลยเอาตัวแรก
+    " error ต้นเหตุคือตัวแรกที่ไม่ใช่ ALL_OR_NONE_OPERATION_ROLLED_BACK ถ้าไม่มีเลยเอาตัวแรก
     DATA ls_error TYPE ty_error.
-    LOOP AT lt_error INTO ls_error WHERE error_code <> gc_halted.
+    LOOP AT lt_error INTO ls_error WHERE error_code <> gc_rolled_back.
       EXIT.
     ENDLOOP.
 
@@ -516,14 +526,14 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
 
         DATA(lo_request) = lo_client->get_http_request( ).
 
-        lo_request->set_uri_path( gc_path_composite ).
+        lo_request->set_uri_path( gc_path_collections ).
 
         lo_request->set_header_field( i_name  = 'Content-Type'
                                       i_value = 'application/json' ).
 
         lo_request->set_text( build_payload( it_record ) ).
 
-        DATA(lo_response) = lo_client->execute( if_web_http_client=>post ).
+        DATA(lo_response) = lo_client->execute( if_web_http_client=>patch ).
 
         rs_result = parse_response( iv_json        = lo_response->get_text( )
                                     iv_http_status = lo_response->get_status( )-code ).
