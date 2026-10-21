@@ -69,8 +69,9 @@ CLASS zcl_zari003_reject_batch DEFINITION
       gc_prop_trigger_id    TYPE string VALUE 'TRIGGER_ID',
 
       "! path ของ API Trigger คือ prefix ตามด้วย trigger id แล้วปิดด้วย suffix
-      "! Outbound Service ตั้ง path เป็น / class นี้ใส่ path เต็มเอง
-      gc_path_prefix        TYPE string VALUE '/public/irpa/runtime/v1/apiTriggers/',
+      "! Outbound Service ตั้ง path เป็น / และระบบเอา path ของ class ต่อท้าย path นั้น
+      "! prefix จึงไม่ขึ้นต้นด้วย / เพื่อไม่ให้ได้ // ซึ่ง gateway ของ SBPA ปฏิเสธ
+      gc_path_prefix        TYPE string VALUE 'public/irpa/runtime/v1/apiTriggers/',
       gc_path_suffix        TYPE string VALUE '/runs',
 
       "! header ที่ SBPA ใช้ตรวจ API key นอกเหนือจาก Bearer token

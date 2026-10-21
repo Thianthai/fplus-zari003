@@ -31,7 +31,7 @@ CLASS ltc_reject_batch IMPLEMENTATION.
   METHOD path_has_trigger_id.
     cl_abap_unit_assert=>assert_equals(
       act = zcl_zari003_reject_batch=>build_path( `abc-123` )
-      exp = `/public/irpa/runtime/v1/apiTriggers/abc-123/runs` ).
+      exp = `public/irpa/runtime/v1/apiTriggers/abc-123/runs` ).
   ENDMETHOD.
 
   METHOD response_2xx_is_success.
