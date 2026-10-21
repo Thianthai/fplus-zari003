@@ -98,7 +98,9 @@ CLASS zcl_zari003_clearing_result DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_zari003_clearing_result IMPLEMENTATION.
+
+CLASS ZCL_ZARI003_CLEARING_RESULT IMPLEMENTATION.
+
 
   METHOD process.
 
@@ -248,5 +250,4 @@ CLASS zcl_zari003_clearing_result IMPLEMENTATION.
     MESSAGE ID gc_msgid TYPE 'I' NUMBER iv_number WITH iv_v1 iv_v2 iv_v3 INTO rv_text.
 
   ENDMETHOD.
-
 ENDCLASS.

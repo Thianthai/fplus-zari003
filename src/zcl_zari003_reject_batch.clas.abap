@@ -115,7 +115,9 @@ CLASS zcl_zari003_reject_batch DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_zari003_reject_batch IMPLEMENTATION.
+
+CLASS ZCL_ZARI003_REJECT_BATCH IMPLEMENTATION.
+
 
   METHOD schedule.
 
@@ -316,5 +318,4 @@ CLASS zcl_zari003_reject_batch IMPLEMENTATION.
     MESSAGE ID gc_msgid TYPE 'I' NUMBER iv_number WITH iv_v1 iv_v2 iv_v3 INTO rv_text.
 
   ENDMETHOD.
-
 ENDCLASS.

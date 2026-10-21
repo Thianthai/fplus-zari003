@@ -181,7 +181,9 @@ CLASS zcl_zari003_sfdc_result DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
+
+CLASS ZCL_ZARI003_SFDC_RESULT IMPLEMENTATION.
+
 
   METHOD send_payment_result.
 
@@ -550,5 +552,4 @@ CLASS zcl_zari003_sfdc_result IMPLEMENTATION.
     ENDTRY.
 
   ENDMETHOD.
-
 ENDCLASS.

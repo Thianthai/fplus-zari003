@@ -91,7 +91,9 @@ CLASS zcl_zari003_clearing_http DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_zari003_clearing_http IMPLEMENTATION.
+
+CLASS ZCL_ZARI003_CLEARING_HTTP IMPLEMENTATION.
+
 
   METHOD if_http_service_extension~handle_request.
 
@@ -277,5 +279,4 @@ CLASS zcl_zari003_clearing_http IMPLEMENTATION.
     MESSAGE ID gc_msgid TYPE 'I' NUMBER iv_number WITH iv_v1 iv_v2 iv_v3 INTO rv_text.
 
   ENDMETHOD.
-
 ENDCLASS.

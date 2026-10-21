@@ -23,7 +23,9 @@ CLASS zcl_zari003_reject_batch_bg DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_zari003_reject_batch_bg IMPLEMENTATION.
+
+CLASS ZCL_ZARI003_REJECT_BATCH_BG IMPLEMENTATION.
+
 
   METHOD constructor.
 
@@ -40,5 +42,4 @@ CLASS zcl_zari003_reject_batch_bg IMPLEMENTATION.
     NEW zcl_zari003_reject_batch( )->send( gv_batch_id ).
 
   ENDMETHOD.
-
 ENDCLASS.
