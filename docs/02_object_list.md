@@ -8,7 +8,7 @@
 | `ZCL_ZARI003_SFDC_RESULT` | Class — ตัวส่ง SFDC ตัวเดียว: `send_payment_result( )` (Completed: อ่าน item -> ยิงทีละ `gc_max_records` -> เขียน `salesforce_*`) · `send( )` + `gc_status_rejected` ให้ปุ่ม Reject ของ ZARE002 (`7e922d1`) · **sObject Collections** `PATCH /composite/sobjects` · `allOrNone: true` · `gc_max_records` 25 -> **200** · 1 payment = 1 call (`3fe7013` 2026-10-14 · OQ-47 ของ ZARE002) | `src/zcl_zari003_sfdc_result.clas.abap` | ✅ `8d1d0eb` (2026-09-24) · sObject Collections `3fe7013` |
 | `ZCL_ZARI003_SFDC_RESULT` testclasses | ทดสอบ build payload และ parse response โดยไม่ต่อ Salesforce | `src/zcl_zari003_sfdc_result.clas.testclasses.abap` | ✅ 11 test (+3 จาก ZARE002: Rejected มี reason · escape `"` · HTTP 401) `7e922d1` · ปรับตาม payload / response ของ sObject Collections `3fe7013` เขียวทั้ง 11 |
 | `ZARI003` | Message class — 001 ไม่มี item · 002 ส่งสำเร็จ · 003 Salesforce ปฏิเสธ · 004 ต่อไม่ถึง · **API #3**: 005 ไม่เจอใบ · 006 มีเลข clearing อยู่แล้ว · 007 clear สำเร็จ · 008 BOT แจ้ง clear ไม่สำเร็จ · 009 body ผิดรูปแบบ | `src/zari003.msag.xml` | ✅ `8d1d0eb` · 005–009 `97054a4` |
-| `ZCL_ZARI003_CLEARING_RESULT` | Class — API #3 logic: หาใบจากเลข JE + ปี -> stamp clearing + status C หรือเก็บ `clearing_message` -> เรียก `send_payment_result( )` | `src/zcl_zari003_clearing_result.clas.abap` | ✅ `97054a4` (2026-09-28) |
+| `ZCL_ZARI003_CLEARING_RESULT` | Class — API #3 logic: หาใบจากเลข JE + ปี -> stamp clearing + status C หรือเก็บ `clearing_message` -> เรียก `send_payment_result( )` · **step 6 (2026-10-22 `c015650`)**: `read_partial_payments` หาใบ partial (item X · billing document เดียวกัน · status S · company เดียวกัน) -> stamp C + เลข clearing เดียวกัน + message 016 -> `send_payment_result` ทีละใบ (OQ-49 ของ ZARE002) | `src/zcl_zari003_clearing_result.clas.abap` | ✅ `97054a4` (2026-09-28) |
 | `ZCL_ZARI003_CLEARING_HTTP` | Class — handler API #3 (`if_http_service_extension`) · `parse_request` static ทดสอบได้ | `src/zcl_zari003_clearing_http.clas.abap` | ✅ `97054a4` |
 | `ZCL_ZARI003_CLEARING_HTTP` testclasses | ทดสอบการอ่าน body 5 เคส | `src/zcl_zari003_clearing_http.clas.testclasses.abap` | ✅ 5 test |
 | `ZARI003_CLEARING` | HTTP Service — `/sap/bc/http/sap/ZARI003_CLEARING` · inbound `ZARI003_CLEARING_HTTP` | `src/zari003_clearing.http.xml` | ✅ `97054a4` · GET ผ่านด้วย comm user ของ BOT |
@@ -28,6 +28,7 @@
 | `ZE_SBPA_API_KEY` / `ZE_SBPA_TRIGGER_ID` | Data element — type ของ Additional Properties `API_KEY` / `TRIGGER_ID` ใน `ZCS_REJECT_BATCH` · **2026-10-21 เปลี่ยนจาก Predefined CHAR เป็น domain case-sensitive** (Predefined Type ทำให้ arrangement แปลงค่าเป็นตัวพิมพ์ใหญ่) | `src/ze_sbpa_*.dtel.xml` | ✅ `a89823e` (2026-10-07) · domain `308d284` |
 | `ZD_SBPA_API_KEY` / `ZD_SBPA_TRIGGER_ID` | Domain CHAR 128 / CHAR 36 · **Case-sensitive** | `src/zd_sbpa_*.doma.xml` | ✅ `308d284` (2026-10-21) |
 | `ZARI003` 015 | Message — ไม่มี API_KEY / TRIGGER_ID ใน `ZCA_REJECT_BATCH` | `src/zari003.msag.xml` | ✅ `a89823e` |
+| `ZARI003` 016 | Message — ใบ partial ถูก clear พร้อมใบสุดท้าย (`clearing_message` ของใบ partial) | `src/zari003.msag.xml` | ✅ `c015650` |
 
 **ต้องขนพร้อมกัน**: `3fe7013` (sObject Collections) กับ ZARE002 `b9cbfb1` (Reject ยิงทีละ payment) — ดู `fplus-zare002/docs/11_transport_to_test.md`
 
