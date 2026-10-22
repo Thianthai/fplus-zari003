@@ -17,7 +17,7 @@
 | `ZCL_ZARI003_REJECT_BATCH` | Class — Phase 8D (path ไม่ขึ้นต้นด้วย `/` ตั้งแต่ `5fc2af7` 2026-10-21 กัน `//` ที่ gateway ของ SBPA ตอบ 400): `schedule( )` ให้ saver ของ Reject (ZARE002) ลงทะเบียน bgPF · `send( )` POST `reject_batch_id` ไป SBPA แล้วเขียน `reject_message` ทุกใบใน batch · `build_payload` / `parse_response` pure · path / body ตาม API Trigger จริงของ SBPA (`a89823e` 2026-10-07) | `src/zcl_zari003_reject_batch.clas.abap` | ✅ `30ee98b` (2026-09-29) · 4 test เขียว |
 | `ZCL_ZARI003_REJECT_BATCH_BG` | Class — bgPF operation `if_bgmc_op_single_tx_uncontr` ถือ batch id แล้วเรียก `send( )` หลัง commit | `src/zcl_zari003_reject_batch_bg.clas.abap` | ✅ `30ee98b` |
 | `ZARI003_REJECT_BATCH_REST` | Outbound Service HTTP · path `/` | `src/zari003_reject_batch_rest.sco3.xml` | ✅ `30ee98b` |
-| `ZCS_REJECT_BATCH` | Communication Scenario outbound · OAuth 2.0 client credentials | `src/zcs_reject_batch.sco1.xml` | ✅ published locally |
+| `ZCS_REJECT_BATCH` | Communication Scenario outbound · OAuth 2.0 client credentials · Additional Properties `API_KEY` (Is Secure) / `TRIGGER_ID` | `src/zcs_reject_batch.sco1.xml` | ✅ published locally · publish ใหม่หลังเปลี่ยน data element เป็น domain `ca2fd1d` (2026-10-22) |
 | Communication Arrangement `ZCA_REJECT_BATCH` | × `SBPA_DEV` · OAuth 2.0 client ID ของ XSUAA · Service URL = SBPA API gateway ap11 | — ไม่ขึ้น git | ✅ (2026-09-29) |
 | `ZARI003` 010–014 | Message — reject batch: 010 ส่งสำเร็จ · 011 SBPA ปฏิเสธ · 012 ต่อไม่ถึง · 013 ไม่เจอใบใน batch · 014 ลงทะเบียน bgPF ไม่ได้ | `src/zari003.msag.xml` | ✅ `30ee98b` |
 | `ZI_ZARI003_REJECT_ITEM` | CDS view — Phase 8F: 1 แถวต่อ item ของใบ `R` ที่มี `reject_batch_id` ให้ SBPA query ไปสรุป email | `src/zi_zari003_reject_item.ddls.asddls` | ✅ `a888bcf` (2026-09-30) |
