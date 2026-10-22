@@ -1,4 +1,6 @@
 "! รับผลการ clear ของ 1 payment จาก BOT แล้วปิดงานฝั่ง SAP
+"! ใบรับชำระบางส่วนของ invoice เดียวกันถูก clear พร้อมใบนี้ในเอกสาร clearing เดียวกัน
+"! จึงปิดใบเหล่านั้นด้วยเลข clearing เดียวกัน และแจ้ง Salesforce ทีละใบ
 "! สำเร็จ บันทึกเลข clearing กับปีบัญชี ตั้งสถานะเป็น Cleared แล้วแจ้ง Salesforce ต่อ
 "! ไม่สำเร็จ เก็บเหตุผลไว้อย่างเดียว
 "! ใบยังอยู่ในคิว ZI_ZARE002_CLEARING ของ ZARE002 รอบถัดไป BOT จะหยิบไปทำใหม่เอง หรือ user หยิบไปทำ manual
@@ -24,7 +26,13 @@ CLASS zcl_zari003_clearing_result DEFINITION
       gc_sap_error       TYPE c LENGTH 1 VALUE 'E',
 
       gc_msgid           TYPE symsgid           VALUE 'ZARI003',
-      gc_status_cleared  TYPE ze_request_status VALUE 'C'.
+      gc_status_cleared  TYPE ze_request_status VALUE 'C',
+
+      "! สถานะของใบที่ post แล้วรอ clear
+      gc_status_submitted TYPE ze_request_status VALUE 'S',
+
+      "! ค่าใน partial_amount ของ item ที่รับชำระบางส่วน
+      gc_partial         TYPE ztar_i002_item-partial_amount VALUE 'X'.
 
     TYPES:
       "! สิ่งที่ BOT ส่งเข้ามา 1 ใบ
@@ -68,6 +76,16 @@ CLASS zcl_zari003_clearing_result DEFINITION
         payment_document_no          TYPE ztar_i002_pymt-payment_document_no,
         clearing_accounting_document TYPE ztar_i002_pymt-clearing_accounting_document,
       END OF ty_payment.
+
+    "! ใบรับชำระบางส่วนที่ต้องปิดพร้อมใบสุดท้าย
+    TYPES tt_partial TYPE STANDARD TABLE OF ty_payment WITH EMPTY KEY.
+
+    "! หาใบรับชำระบางส่วนที่ใช้ billing document เดียวกับใบสุดท้าย
+    "! เฉพาะใบที่ post แล้วและยังรอ clear ใน company code เดียวกัน
+    METHODS read_partial_payments
+      IMPORTING iv_payment_uuid   TYPE sysuuid_x16
+                iv_company_code   TYPE ztar_i002_pymt-company_code
+      RETURNING VALUE(rt_partial) TYPE tt_partial.
 
     "! หา payment จาก company code เลขเอกสาร JE และปีบัญชี
     METHODS read_payment
@@ -174,6 +192,25 @@ CLASS ZCL_ZARI003_CLEARING_RESULT IMPLEMENTATION.
     rs_result-salesforce_status  = ls_sfdc-status.
     rs_result-salesforce_message = ls_sfdc-message.
 
+
+    " 6. ปิดใบรับชำระบางส่วนของ invoice เดียวกัน
+    " ใบเหล่านี้ไม่เข้าคิว clearing เอง BOT clear เอกสารของใบเหล่านี้พร้อมใบนี้ในเอกสาร clearing เดียวกัน
+    " จึงบันทึกเลข clearing เดียวกัน ตั้งสถานะ Cleared แล้วแจ้ง Salesforce ว่า Completed ทีละใบ
+    " ผลของใบเหล่านี้ไม่เปลี่ยนคำตอบที่ส่งกลับให้ BOT
+    DATA(lt_partial) = read_partial_payments( iv_payment_uuid = ls_payment-payment_uuid
+                                              iv_company_code = is_request-company_code ).
+
+    LOOP AT lt_partial INTO DATA(ls_partial).
+      save_clearing( iv_payment_uuid = ls_partial-payment_uuid
+                     is_request      = is_request
+                     iv_message      = message_text( iv_number = '016'
+                                                     iv_v1     = ls_partial-payment_document_no
+                                                     iv_v2     = ls_payment-payment_document_no
+                                                     iv_v3     = is_request-clearing_document ) ).
+
+      NEW zcl_zari003_sfdc_result( )->send_payment_result( ls_partial-payment_uuid ).
+    ENDLOOP.
+
   ENDMETHOD.
 
 
@@ -198,6 +235,28 @@ CLASS ZCL_ZARI003_CLEARING_RESULT IMPLEMENTATION.
     ENDIF.
 
     rv_found = abap_true.
+
+  ENDMETHOD.
+
+
+  METHOD read_partial_payments.
+
+    SELECT FROM ztar_i002_item AS final_item
+      INNER JOIN ztar_i002_item AS partial_item
+        ON partial_item~billing_document = final_item~billing_document
+      INNER JOIN ztar_i002_pymt AS partial
+        ON partial~payment_uuid = partial_item~payment_uuid
+      FIELDS DISTINCT partial~payment_uuid,
+                      partial~payment_document_no,
+                      partial~clearing_accounting_document
+      WHERE final_item~payment_uuid              = @iv_payment_uuid
+        AND final_item~billing_document          <> @space
+        AND partial_item~partial_amount          = @gc_partial
+        AND partial~company_code                 = @iv_company_code
+        AND partial~status                       = @gc_status_submitted
+        AND partial~payment_accounting_document  <> @space
+        AND partial~clearing_accounting_document = @space
+      INTO CORRESPONDING FIELDS OF TABLE @rt_partial.
 
   ENDMETHOD.
 
